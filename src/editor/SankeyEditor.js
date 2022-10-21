@@ -80,8 +80,15 @@ bluewave.editor.SankeyEditor = function(parent, config) {
 
       //Update config as needed
         if (!config.style) config.style = javaxt.dhtml.style.default;
-        if (!config.waitmask) config.waitmask = new javaxt.express.WaitMask(document.body);
+
+
+      //Set waitmask
         waitmask = config.waitmask;
+        if (!waitmask) waitmask = {
+            show: function(){},
+            hide: function(){}
+        };
+
 
 
       //Create main panel

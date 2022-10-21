@@ -182,11 +182,16 @@ bluewave.Explorer = function(parent, config) {
   //**************************************************************************
     var init = function(){
 
+
+      //Process config
         me.setConfig(config);
         if (!config.fx) config.fx = new javaxt.dhtml.Effects();
         if (!config.style) config.style = javaxt.dhtml.style.default;
-        if (!config.waitmask) config.waitmask = new javaxt.express.WaitMask(document.body);
         waitmask = config.waitmask;
+        if (!waitmask) waitmask = {
+            show: function(){},
+            hide: function(){}
+        };
 
 
       //Create main panel
