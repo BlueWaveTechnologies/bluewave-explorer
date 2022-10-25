@@ -16,9 +16,15 @@ if(!bluewave.editor) bluewave.editor={};
         panel: {
 
         },
+        colors: {
+            red: d3.schemeReds[7],
+            blue: d3.schemeBlues[7]
+        },
         chart: {
-            backgroundColor: "#fff",
-            landColor: "#dedde0"
+            style: {
+                backgroundColor: "#fff",
+                landColor: "#dedde0"
+            }
         }
     };
 
@@ -28,19 +34,10 @@ if(!bluewave.editor) bluewave.editor={};
     var previewArea;
     var mapChart;
     var inputData = [];
-    var mapInputs = {
-        projection:null,
-        mapType:null,
-        pointData:null,
-        lat:null,
-        long:null,
-        mapValue:null,
-        mapLevel:null,
-        colorScale:null
-    };
-    var styleEditor, colorPicker;
 
 
+    var mapInputs = {}; //Map of form inputs (rows with comboboxes)
+    var styleEditor, colorPicker; //popup windows
     var counties, states, countries; //topojson
     var options = []; //aggregation options
 
@@ -56,18 +53,16 @@ if(!bluewave.editor) bluewave.editor={};
         chartConfig = config.chart;
 
 
-        let table = createTable();
-        let tbody = table.firstChild;
-        var tr = document.createElement("tr");
-        tbody.appendChild(tr);
-        parent.appendChild(table);
+
+      //Create table with 2 columns
+        let table = createTable(parent);
+        var tr = table.addRow();
         me.el = table;
         var td;
 
 
       //Create left panel with map options
-        td = document.createElement("td");
-        tr.appendChild(td);
+        td = tr.addColumn();
         let div = document.createElement("div");
         div.className = "chart-editor-options";
         td.appendChild(div);
@@ -82,11 +77,10 @@ if(!bluewave.editor) bluewave.editor={};
 
 
       //Create main panel with map
-        td = document.createElement("td");
+        td = tr.addColumn();
         td.className = "chart-editor-preview";
         td.style.width = "100%";
         td.style.height = "100%";
-        tr.appendChild(td);
         panel = createDashboardItem(td,{
             width: "100%",
             height: "100%",
@@ -95,9 +89,7 @@ if(!bluewave.editor) bluewave.editor={};
         });
         panel.el.className = "";
         previewArea = panel.innerDiv;
-        mapChart = new bluewave.charts.MapChart(previewArea, {
-
-        });
+        mapChart = new bluewave.charts.MapChart(previewArea, chartConfig);
         mapChart.disablePan();
 
 
@@ -193,14 +185,38 @@ if(!bluewave.editor) bluewave.editor={};
 
       //Populate pulldowns
         var data = inputData[0];
-        if(Array.isArray(data)){
-            let dataOptions = Object.keys(data[0]);
-            dataOptions.forEach((val)=>{
-                mapInputs.lat.add(val, val);
-                mapInputs.long.add(val, val);
-                mapInputs.mapLocation.add(val, val);
-                mapInputs.mapValue.add(val, val);
+        if (isArray(data)){
+
+
+          //Analyze dataset
+            var numericFields = [];
+            var stringFields = [];
+            Object.keys(data[0]).forEach((field)=>{
+                var values = [];
+                data.forEach((d)=>{
+                    var val = d[field];
+                    values.push(val);
+                });
+
+                var type = getType(values);
+                if (type=="string") stringFields.push(field);
+                if (type=="number") numericFields.push(field);
             });
+
+
+          //Populate numeric pulldowns
+            numericFields.forEach((field)=>{
+                mapInputs.lat.add(field, field);
+                mapInputs.long.add(field, field);
+                mapInputs.mapValue.add(field, field);
+            });
+
+
+          //Populate string pulldowns
+            stringFields.forEach((field)=>{
+                mapInputs.mapLocation.add(field, field);
+            });
+
 
             mapInputs.mapType.add("Point", "Point");
             mapInputs.mapType.add("Area", "Area");
@@ -408,7 +424,7 @@ if(!bluewave.editor) bluewave.editor={};
    *  chart config and data
    */
     this.renderChart = function(parent){
-        var chart = new bluewave.charts.MapChart(parent, {});
+        var chart = new bluewave.charts.MapChart(parent, chartConfig);
         createMapPreview(chart);
         return chart;
     };
@@ -544,8 +560,8 @@ if(!bluewave.editor) bluewave.editor={};
             createColorOptions("landColor", form);
             var pointFill = chartConfig.pointColor || "#ff3c38"; //red default
             form.findField("color").setValue(pointFill);
-            form.findField("backgroundColor").setValue(chartConfig.backgroundColor);
-            form.findField("landColor").setValue(chartConfig.landColor);
+            form.findField("backgroundColor").setValue(chartConfig.style.backgroundColor);
+            form.findField("landColor").setValue(chartConfig.style.landColor);
 
           //Update color field (add colorPicker) and set initial value
             createColorOptions("outlineColor", form);
@@ -610,8 +626,8 @@ if(!bluewave.editor) bluewave.editor={};
                     chartConfig.pointRadius = settings.radius;
                     chartConfig.opacity = settings.opacity;
                     chartConfig.outlineWidth = settings.outlineWidth;
-                    chartConfig.landColor = settings.landColor;
-                    chartConfig.backgroundColor = settings.backgroundColor;
+                    chartConfig.style.landColor = settings.landColor;
+                    chartConfig.style.backgroundColor = settings.backgroundColor;
                     chartConfig.lon = settings.centerHorizontal;
                     chartConfig.lat = settings.centerVertical;
                     createMapPreview();
@@ -623,8 +639,8 @@ if(!bluewave.editor) bluewave.editor={};
                     var settings = form.getData();
                     chartConfig.pointColor = settings.color;
                     chartConfig.outlineColor = settings.outlineColor;
-                    chartConfig.landColor = settings.landColor;
-                    chartConfig.backgroundColor = settings.backgroundColor;
+                    chartConfig.style.landColor = settings.landColor;
+                    chartConfig.style.backgroundColor = settings.backgroundColor;
                     chartConfig.pointRadius = settings.radius;
                     chartConfig.outlineWidth = settings.outlineWidth;
                     chartConfig.opacity = settings.opacity;
@@ -634,25 +650,17 @@ if(!bluewave.editor) bluewave.editor={};
         }
         else if (mapType==="Area"){
             if (mapLevel==="states" || mapLevel==="world"){
-                var colorField = new javaxt.dhtml.ComboBox(
-                    document.createElement("div"),
-                    {
-                        style: config.style.combobox
-                    }
-                );
-                colorField.add("Red", "red");
-                colorField.add("Blue", "blue");
 
                 form = new javaxt.dhtml.Form(body, {
                     style: config.style.form,
                     items: [
                         {
-                            group: "Style",
+                            group: "Fill Style",
                             items: [
                                 {
-                                    name: "color",
+                                    name: "fillColors",
                                     label: "Color",
-                                    type: colorField
+                                    type: createColorField()
                                 }
                             ]
                         },
@@ -664,8 +672,8 @@ if(!bluewave.editor) bluewave.editor={};
                 //Set up the Color Picker
                 createColorOptions("backgroundColor", form);
                 createColorOptions("landColor", form);
-                form.findField("backgroundColor").setValue(chartConfig.backgroundColor);
-                form.findField("landColor").setValue(chartConfig.landColor);
+                form.findField("backgroundColor").setValue(chartConfig.style.backgroundColor);
+                form.findField("landColor").setValue(chartConfig.style.landColor);
 
                 var horizontalField = form.findField("centerHorizontal");
                 if (horizontalField){
@@ -700,35 +708,27 @@ if(!bluewave.editor) bluewave.editor={};
               //Process onChange events
                 form.onChange = function(){
                     var settings = form.getData();
-                    chartConfig.colorScale = settings.color;
-                    chartConfig.landColor = settings.landColor;
-                    chartConfig.backgroundColor = settings.backgroundColor;
+                    chartConfig.fillColors = JSON.parse(settings.fillColors);
+                    chartConfig.style.landColor = settings.landColor;
+                    chartConfig.style.backgroundColor = settings.backgroundColor;
                     chartConfig.lon = settings.centerHorizontal;
                     chartConfig.lat = settings.centerVertical;
                     createMapPreview();
                 };
             }
             else if (mapLevel==="counties"){
-                var colorField = new javaxt.dhtml.ComboBox(
-                    document.createElement("div"),
-                    {
-                        style: config.style.combobox
-                    }
-                );
-                colorField.add("Red", "red");
-                colorField.add("Blue", "blue");
 
 
                 form = new javaxt.dhtml.Form(body, {
                     style: config.style.form,
                     items: [
                         {
-                            group: "Style",
+                            group: "Fill Style",
                             items: [
                                 {
-                                    name: "color",
+                                    name: "fillColors",
                                     label: "Color",
-                                    type: colorField
+                                    type: createColorField()
                                 }
                             ]
                         },
@@ -739,14 +739,14 @@ if(!bluewave.editor) bluewave.editor={};
                 //Set up the Color Picker
                 createColorOptions("backgroundColor", form);
                 createColorOptions("landColor", form);
-                form.findField("backgroundColor").setValue(chartConfig.backgroundColor);
-                form.findField("landColor").setValue(chartConfig.landColor);
+                form.findField("backgroundColor").setValue(chartConfig.style.backgroundColor);
+                form.findField("landColor").setValue(chartConfig.style.landColor);
 
                 form.onChange = function(){
                     var settings = form.getData();
-                    chartConfig.colorScale = settings.color;
-                    chartConfig.landColor = settings.landColor;
-                    chartConfig.backgroundColor = settings.backgroundColor;
+                    chartConfig.fillColors = JSON.parse(settings.fillColors);
+                    chartConfig.style.landColor = settings.landColor;
+                    chartConfig.style.backgroundColor = settings.backgroundColor;
                     createMapPreview();
                 };
             }
@@ -764,8 +764,8 @@ if(!bluewave.editor) bluewave.editor={};
                 //Set up the Color Picker
                 createColorOptions("backgroundColor", form);
                 createColorOptions("landColor", form);
-                form.findField("backgroundColor").setValue(chartConfig.backgroundColor);
-                form.findField("landColor").setValue(chartConfig.landColor);
+                form.findField("backgroundColor").setValue(chartConfig.style.backgroundColor);
+                form.findField("landColor").setValue(chartConfig.style.landColor);
 
                 var horizontalField = form.findField("centerHorizontal");
                 if (horizontalField){
@@ -799,8 +799,8 @@ if(!bluewave.editor) bluewave.editor={};
                     var settings = form.getData();
                     chartConfig.lon =  settings.centerHorizontal;
                     chartConfig.lat = settings.centerVertical;
-                    chartConfig.landColor = settings.landColor;
-                    chartConfig.backgroundColor = settings.backgroundColor;
+                    chartConfig.style.landColor = settings.landColor;
+                    chartConfig.style.backgroundColor = settings.backgroundColor;
                     createMapPreview();
                 };
             }
@@ -827,6 +827,51 @@ if(!bluewave.editor) bluewave.editor={};
         if (mapLevel.indexOf("counties")>-1) return "counties";
         if (mapLevel.indexOf("countries")>-1 || mapLevel.indexOf("world")>-1) return "world";
         return mapLevel;
+    };
+
+
+  //**************************************************************************
+  //** createColorField
+  //**************************************************************************
+  /** Returns a pulldown with color options
+   */
+    var createColorField = function(){
+        var colorField = new javaxt.dhtml.ComboBox(
+            document.createElement("div"),
+            {
+                style: config.style.combobox
+            }
+        );
+
+
+      //Add color options
+        var defaultValue;
+        for (var key in config.colors) {
+            if (config.colors.hasOwnProperty(key)){
+                colorField.add(key, JSON.stringify(config.colors[key]));
+                if (!defaultValue) defaultValue = key;
+            }
+        }
+
+
+      //Set initial value for the color
+        if (chartConfig.fillColors){
+            var color = chartConfig.fillColors;
+            colorField.getOptions().every(function(d){
+                var key = d.text;
+                var val = d.value;
+                if (color==key || JSON.stringify(color)==val){
+                    colorField.setValue(key);
+                    return false;
+                }
+                return true;
+            });
+        }
+        else{
+            colorField.setValue(defaultValue);
+        }
+
+        return colorField;
     };
 
 
@@ -877,26 +922,34 @@ if(!bluewave.editor) bluewave.editor={};
 
 
       //Set background color for the map (i.e. the color the 'water')
-        var backgroundColor = chartConfig.backgroundColor;
+        var backgroundColor = chartConfig.style.backgroundColor;
         if (!backgroundColor) backgroundColor = "white";
         mapChart.setBackgroundColor(backgroundColor);
 
 
       //Set default color for land masses
-        var landColor = chartConfig.landColor;
-        if (!landColor) landColor = "lightgray";
+        var landColor = getDefaultFillColor();
 
 
       //Get min/max values
         var extent = d3.extent(data, function(d) { return parseFloat(d[chartConfig.mapValue]); });
 
 
-      //Set color scale
-        var colorScale = {
-            "blue": d3.scaleQuantile(extent, d3.schemeBlues[7]),
-            "red": d3.scaleQuantile(extent, d3.schemeReds[7])
-        };
-        if (!chartConfig.colorScale) chartConfig.colorScale = "red";
+      //Get fill colors
+        var fillColors;
+        if(chartConfig.mapType === "Area"){
+            fillColors = chartConfig.fillColors;
+            if (!fillColors){
+                if (config.colors){
+                    for (var key in config.colors) {
+                        if (config.colors.hasOwnProperty(key)){
+                            fillColors = config.colors[key];
+                            break;
+                        }
+                    }
+                }
+            }
+        }
 
 
 
@@ -930,14 +983,14 @@ if(!bluewave.editor) bluewave.editor={};
 
                 var area = selectArea(data, chartConfig);
                 if (area==="counties"){
-                    renderCounties(data, colorScale);
+                    renderCounties(data, fillColors, landColor);
                     renderStates();
                 }
                 else if (area==="states"){ //render states
-                    renderStates(data, colorScale);
+                    renderStates(data, fillColors, landColor);
                 }
                 else if (area==="censusDivisions"){ //render census divisions
-                    renderCensusRegions(data, colorScale);
+                    renderCensusRegions(data, fillColors, landColor);
                 }
                 else{
                     renderCounties();
@@ -981,14 +1034,14 @@ if(!bluewave.editor) bluewave.editor={};
               //Render data using the most suitable geometry type
                 var area = selectArea(data, chartConfig);
                 if (area==="counties"){ //render counties
-                    renderCounties(data, colorScale);
+                    renderCounties(data, fillColors, landColor);
                     renderStates();
                 }
                 else if (area==="states"){ //render states
-                    renderStates(data, colorScale);
+                    renderStates(data, fillColors, landColor);
                 }
                 else if (area==="censusDivisions"){ //render census divisions
-                    renderCensusRegions(data, colorScale);
+                    renderCensusRegions(data, fillColors, landColor);
                 }
                 else{
                     renderStates();
@@ -1028,43 +1081,25 @@ if(!bluewave.editor) bluewave.editor={};
             }
             else if(chartConfig.mapType === "Area"){
 
-
-              //Aggregate state and county data to the country level
-                var aggregateState = 0;
-                data.forEach(function(d){
-                    var state;
-                    var country;
-                    if(d.state) {
-                        state = d.state;
-                        aggregateState = aggregateState + parseFloat(d[chartConfig.mapValue]);
-                    }
-                   if(d.country) country = d.country;
-                    for(var i = 0; i < countries.features.length; i++){
-                        if(country == countries.features[i].properties.code){
-                            countries.features[i].properties.inData = true;
-                            countries.features[i].properties.mapValue = d[chartConfig.mapValue];
-                        }else if(countries.features[i].properties.code == "US" &&
-                                aggregateState > 0){
-                            countries.features[i].properties.inData = true;
-                            countries.features[i].properties.mapValue = aggregateState;
-                        }
-                    }
-                });
+              //Instantiate fill class
+                var fill = new Fill(data, fillColors);
 
 
               //Render countries
                 mapChart.addPolygons(countries.features, {
                     name: "countries",
                     style: {
-                        fill: function(d){
-                            var inData = d.properties.inData;
-                            if(inData){
-                                return colorScale[chartConfig.colorScale](d.properties.mapValue);
-                            }else{
-                                return landColor;
-                            }
+                        fill: function(feature){
+                            return fill.getColor(feature.properties.code, landColor);
                         },
                         stroke: "white"
+                    },
+                    showTooltip: true,
+                    getTooltipLabel: function(feature){
+                        var name = feature.properties.name;
+                        var value = fill.getValue(feature.properties.code);
+                        if (isNaN(value)) value = "No data";
+                        return name + ": " + value;
                     }
                 });
 
@@ -1388,30 +1423,39 @@ if(!bluewave.editor) bluewave.editor={};
    *  @param data If given, will render different fill colors using data values
    *  @param colorScale Used to define fill colors
    */
-    var renderCounties = function(data, colorScale){
+    var renderCounties = function(data, fillColors, defaultFillColor){
 
-        var fill = chartConfig.landColor; //"none";
-        if (data && colorScale){
+      //Get default fill color
+        if (!defaultFillColor) defaultFillColor = getDefaultFillColor();
 
-            var values = {};
-            data.forEach(function(d){
-                var countyID = d[chartConfig.mapLocation];
-                values[countyID] = d[chartConfig.mapValue];
-            });
 
-            fill = function(county){
-                var v = parseFloat(values[county.id]);
-                if (isNaN(v) || v<0) v = 0;
-                var fill = colorScale[chartConfig.colorScale](v);
-                if (!fill) return chartConfig.landColor;
-                return fill;
-            };
+      //Instantiate fill class as needed
+        var fill;
+        if (data && fillColors){
+            fill = new Fill(data, fillColors);
         }
 
+
+      //Add polygons
         mapChart.addPolygons(counties.features, {
             name: "counties",
             style: {
-                fill: fill
+                fill: function(feature){
+                    if (fill){
+                        return fill.getColor(feature.id, defaultFillColor);
+                    }
+                    else{
+                        return defaultFillColor;
+                    }
+                },
+                stroke: "white"
+            },
+            showTooltip: fill ? true : false,
+            getTooltipLabel: function(feature){
+                var name = feature.id;
+                var value = fill.getValue(feature.id);
+                if (isNaN(value)) value = "No data";
+                return name + ": " + value;
             }
         });
     };
@@ -1424,33 +1468,46 @@ if(!bluewave.editor) bluewave.editor={};
    *  @param data If given, will render different fill colors using data values
    *  @param colorScale Used to define fill colors
    */
-    var renderStates = function(data, colorScale){
+    var renderStates = function(data, fillColors, defaultFillColor){
 
-        var fill = "none";
-        if (data && colorScale){
+      //Get default fill color
+        if (!defaultFillColor) defaultFillColor = getDefaultFillColor();
 
-            var values = {};
-            data.forEach(function(d){
-                var state = d[chartConfig.mapLocation];
-                if (typeof state === 'undefined') return;
-                values[state] = d[chartConfig.mapValue];
-            });
 
-            fill = function(state){
-                var v = parseFloat(values[state.properties.name]);
-                if (isNaN(v)) v = parseFloat(values[state.properties.code]);
-                if (isNaN(v) || v<0) v = 0;
-                var fill = colorScale[chartConfig.colorScale](v);
-                if (!fill) return chartConfig.landColor;
-                return fill;
-            };
+      //Instantiate fill class as needed
+        var fill;
+        if (data && fillColors){
+            fill = new Fill(data, fillColors);
         }
 
+
+      //Add polygons
         mapChart.addPolygons(states.features, {
             name: "states",
             style: {
-                fill: fill,
+                fill: function(feature){
+                    if (fill){
+                        var key = feature.properties.name;
+                        var value = fill.getValue(key);
+                        if (isNaN(value)){
+                            key = feature.properties.code;
+                            value = fill.getValue(key);
+                        }
+
+                        return fill.getColor(key, defaultFillColor);
+                    }
+                    else{
+                        return defaultFillColor;
+                    }
+                },
                 stroke: "white"
+            },
+            showTooltip: fill ? true : false,
+            getTooltipLabel: function(feature){
+                var name = feature.properties.name;
+                var value = fill.getValue(feature.properties.name);
+                if (isNaN(value)) value = "No data";
+                return name + ": " + value;
             }
         });
     };
@@ -1461,7 +1518,18 @@ if(!bluewave.editor) bluewave.editor={};
   //**************************************************************************
   /** Used to render sensus regions using state polygons with a given color scale
    */
-    var renderCensusRegions = function(data, colorScale){
+    var renderCensusRegions = function(data, fillColors, defaultFillColor){
+
+      //Get default fill color
+        if (!defaultFillColor) defaultFillColor = getDefaultFillColor();
+
+
+      //Instantiate fill class as needed
+        var fill;
+        if (data && fillColors){
+            fill = new Fill(data, fillColors);
+        }
+
 
         var values = {};
         data.forEach(function(d){
@@ -1482,11 +1550,15 @@ if(!bluewave.editor) bluewave.editor={};
                     return fill;
                 },
                 stroke: "white"
-            }
+            },
+            showTooltip: fill ? true : false
         });
     };
 
 
+  //**************************************************************************
+  //** renderCountries
+  //**************************************************************************
     var renderCountries = function(){
         mapChart.addPolygons(countries.features, {
             name: "countries",
@@ -1553,15 +1625,90 @@ if(!bluewave.editor) bluewave.editor={};
 
 
   //**************************************************************************
+  //** getColor
+  //**************************************************************************
+    var getColor = function(value, colors, breaks){
+        for (var i=0; i<breaks.length-1; i++){
+            var currBreak = breaks[i];
+            var nextBreak = breaks[i+1];
+            var color = colors[i];
+
+            if (value>=currBreak && value<nextBreak){
+                return color;
+            }
+            else{
+                if (value==breaks[breaks.length-1]){
+                    return colors[colors.length-1];
+                }
+            }
+        }
+    };
+
+
+  //**************************************************************************
+  //** getDefaultFillColor
+  //**************************************************************************
+    var getDefaultFillColor = function(){
+        var defaultFillColor = chartConfig.style.landColor;
+        if (!defaultFillColor) defaultFillColor = "lightgray";
+        return defaultFillColor;
+    };
+
+
+  //**************************************************************************
+  //** Fill class
+  //**************************************************************************
+  /** Used to generate fill colors for a given dataset using natural breaks.
+   *  @param data A JSON array
+   *  @param fillColors An array of strings representing fill colors
+   */
+    var Fill = function(data, fillColors){
+        var me = this;
+
+      //Get values
+        var values = {};
+        data.forEach(function(d){
+            var key = d[chartConfig.mapLocation];
+            var value = parseFloat(d[chartConfig.mapValue]);
+            if (!isNaN(value)) values[key] = value;
+        });
+
+
+      //Get natural breaks
+        var breaks = getNaturalBreaks(Object.values(values), fillColors.length);
+
+
+        this.getColor = function(key, defaultColor){
+            var value = me.getValue(key);
+            if (isNaN(value)){
+                return defaultColor;
+            }
+            else{
+                return getColor(value, fillColors, breaks);
+            }
+        };
+
+        this.getValue = function(key){
+            return values[key];
+        };
+    };
+
+
+  //**************************************************************************
   //** Utils
   //**************************************************************************
     var merge = javaxt.dhtml.utils.merge;
     var createTable = javaxt.dhtml.utils.createTable;
-    var createDashboardItem = bluewave.utils.createDashboardItem;
+    var isArray = javaxt.dhtml.utils.isArray;
     var addShowHide = javaxt.dhtml.utils.addShowHide;
+
+    var createDashboardItem = bluewave.utils.createDashboardItem;
     var addTextEditor = bluewave.utils.addTextEditor;
     var createSlider = bluewave.utils.createSlider;
-    var warn = bluewave.utils.warn;
+
+    var getType = bluewave.chart.utils.getType;
+    var getNaturalBreaks = bluewave.chart.utils.getNaturalBreaks;
+
 
     init();
  };
