@@ -882,29 +882,46 @@ if(!bluewave.editor) bluewave.editor={};
    */
     var createColorOptions = function(inputName, form){
         bluewave.utils.createColorOptions(inputName, form, function(colorField){
-            if (!colorPicker) colorPicker = bluewave.utils.createColorPickerCallout(config);
 
+          //Instantiate colorPicker as needed
+            if (!colorPicker){
+                colorPicker = bluewave.utils.createColorPickerCallout({
+                    style: config.style
+                });
+            }
+
+
+          //Define color pallette
+            var colors;
             if (inputName==="backgroundColor"){
-                colorPicker.setColors([
+                colors = [
                     "#fff", //white
                     "#e5ecf4" //blue
-                ]);
+                ];
             }
             else if (inputName==="landColor"){
-                colorPicker.setColors([
+                colors = [
                     "#f6f8f5", //gray
                     "#dedde0" //gray
-                ]);
+                ];
             }
             else{
-                colorPicker.setColors(bluewave.utils.getColorPalette(true));
+                colors = bluewave.utils.getColorPalette(true);
             }
 
+          //Update colorPicker
+            colorPicker.setColors(colors);
+            colorPicker.setColor(colorField.getValue());
+
+
+          //Display colorPicker
             var rect = javaxt.dhtml.utils.getRect(colorField.row);
             var x = rect.x + rect.width + 15;
             var y = rect.y + (rect.height/2);
             colorPicker.showAt(x, y, "right", "middle");
-            colorPicker.setColor(colorField.getValue());
+
+            
+          //Watch for user events
             colorPicker.onChange = function(color){
                 colorField.setValue(color);
             };
