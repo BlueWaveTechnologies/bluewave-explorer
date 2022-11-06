@@ -26,7 +26,8 @@ bluewave.editor.PieEditor = function(parent, config) {
             piePadding: 0,
             maximumSlices: 8,
             labelOffset: 120,
-            showOther: true
+            showOther: true,
+            showTooltip: true
         }
     };
 
@@ -51,16 +52,15 @@ bluewave.editor.PieEditor = function(parent, config) {
         chartConfig = config.chart;
 
 
-        let table = createTable();
-        let tbody = table.firstChild;
-        var tr = document.createElement("tr");
-        tbody.appendChild(tr);
-        parent.appendChild(table);
-        me.el = table;
+      //Create table with 2 columns
+        var table = createTable(parent);
+        var tr = table.addRow();
         var td;
+        me.el = table;
 
-        td = document.createElement("td");
-        tr.appendChild(td);
+
+      //Create chart options
+        td = tr.addColumn();
         let div = document.createElement("div");
         div.className = "chart-editor-options";
         td.appendChild(div);
@@ -68,11 +68,10 @@ bluewave.editor.PieEditor = function(parent, config) {
 
 
       //Create chart preview
-        td = document.createElement("td");
+        td = tr.addColumn();
         td.className = "chart-editor-preview";
         td.style.width = "100%";
         td.style.height = "100%";
-        tr.appendChild(td);
         panel = createDashboardItem(td,{
             width: "100%",
             height: "100%",
