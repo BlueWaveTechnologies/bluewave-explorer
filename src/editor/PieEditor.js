@@ -279,7 +279,7 @@ bluewave.editor.PieEditor = function(parent, config) {
         var hasLinks = data.hasOwnProperty("links");
 
 
-        var dataOptions;
+        var fields;
         if (hasLinks) {
             data = Object.values(data.links);
             var nodeTypeList = [];
@@ -289,24 +289,35 @@ bluewave.editor.PieEditor = function(parent, config) {
                     nodeTypeList.push(nodeType);
                 }
             }
-            dataOptions = nodeTypeList;
+            fields = nodeTypeList;
         }
         else{
-            dataOptions = Object.keys(data[0]);
+            fields = Object.keys(data[0]);
         }
 
 
+      //Analyze dataset
+        var valueFields = [];
+        fields.forEach((field)=>{
+            var values = [];
+            data.forEach((d)=>{
+                var val = d[field];
+                values.push(val);
+            });
+            var type = getType(values);
+            if (type=="number" || type=="currency") valueFields.push(field);
+        });
 
-        var table = createTable();
-        var tbody = table.firstChild;
+
+
+        var table = createTable(parent);
         table.style.height = "";
-        parent.appendChild(table);
 
 
         if (hasLinks){
-            createDropdown(tbody,"pieKey","Group By","key");
-            createDropdown(tbody,"pieDirection","Direction","direction");
-            dataOptions.forEach((val)=>{
+            createDropdown(table,"pieKey","Group By","key");
+            createDropdown(table,"pieDirection","Direction","direction");
+            fields.forEach((val)=>{
                 pieInputs.key.add(val, val);
             });
             chartConfig.pieValue = "quantity";
@@ -315,23 +326,24 @@ bluewave.editor.PieEditor = function(parent, config) {
             pieInputs.direction.setValue(chartConfig.pieDirection, true);
         }
         else{
-            createDropdown(tbody,"pieKey","Key","key");
-            createDropdown(tbody,"pieValue","Value","value");
-            dataOptions.forEach((val)=>{
-                if (!isNaN(data[0][val])){
-                    pieInputs.value.add(val,val);
-                }
-                else{
-                   pieInputs.key.add(val,val);
-                }
+
+            createDropdown(table,"pieKey","Key","key");
+            fields.forEach((val)=>{
+                pieInputs.key.add(val,val);
             });
 
-            createDropdown(tbody,"pieSort","Sort By","sort");
+            createDropdown(table,"pieValue","Value","value");
+            valueFields.forEach((field)=>{
+                pieInputs.value.add(field,field);
+            });
+
+
+            createDropdown(table,"pieSort","Sort By","sort");
             pieInputs.sort.add("");
             pieInputs.sort.add("Key");
             pieInputs.sort.add("Value");
 
-            createDropdown(tbody,"pieSortDir","Sort Direction","sortDir");
+            createDropdown(table,"pieSortDir","Sort Direction","sortDir");
         }
 
 
@@ -345,21 +357,14 @@ bluewave.editor.PieEditor = function(parent, config) {
   //**************************************************************************
   //** createDropdown
   //**************************************************************************
-    var createDropdown = function(tbody,chartConfigRef,displayName,inputType){
-        var tr, td;
+    var createDropdown = function(table,chartConfigRef,displayName,inputType){
+        var td;
 
-        tr = document.createElement("tr");
-        tbody.appendChild(tr);
-        td = document.createElement("td");
-        tr.appendChild(td);
+
+        td = table.addRow().addColumn();
         td.innerHTML= displayName+":";
 
-        tr = document.createElement("tr");
-        tbody.appendChild(tr);
-        td = document.createElement("td");
-        tr.appendChild(td);
-
-
+        td = table.addRow().addColumn();
         pieInputs[inputType] = new javaxt.dhtml.ComboBox(td, {
             style: config.style.combobox,
             readOnly: true
@@ -620,6 +625,7 @@ bluewave.editor.PieEditor = function(parent, config) {
     var createDashboardItem = bluewave.utils.createDashboardItem;
     var createSlider = bluewave.utils.createSlider;
     var addTextEditor = bluewave.utils.addTextEditor;
+    var getType = bluewave.chart.utils.getType;
 
     init();
 };
