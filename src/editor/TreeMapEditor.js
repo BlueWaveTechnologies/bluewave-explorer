@@ -16,7 +16,8 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
 
         },
         chart: {
-
+            showTooltip: true,
+            shape: "circle"
         }
     };
 
@@ -39,29 +40,29 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
         config = merge(config, defaultConfig);
         chartConfig = config.chart;
 
-
-        let table = createTable();
-        let tbody = table.firstChild;
-        var tr = document.createElement("tr");
-        tbody.appendChild(tr);
-        parent.appendChild(table);
+      //Create table with 2 columns
+        let table = createTable(parent);
+        var tr = table.addRow();
         me.el = table;
         var td;
 
-        td = document.createElement("td");
-        tr.appendChild(td);
+
+      //Left column (chart options)
+        td = tr.addColumn();
         let div = document.createElement("div");
         div.className = "chart-editor-options";
         td.appendChild(div);
         optionsDiv = div;
 
 
-      //Create chart preview
-        td = document.createElement("td");
+      //Right column (chart preview)
+        td = tr.addColumn();
         td.className = "chart-editor-preview";
         td.style.width = "100%";
         td.style.height = "100%";
-        tr.appendChild(td);
+
+
+      //Create panel in the right column
         panel = createDashboardItem(td,{
             width: "100%",
             height: "100%",
@@ -70,6 +71,9 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
         });
         previewArea = panel.innerDiv;
         treeMapChart = new bluewave.charts.TreeMapChart(previewArea, {});
+        treeMapChart.onClick = function(rect, data){
+            editGroup(treeMapChart.getGroup(data.group));
+        };
         panel.el.className = "";
 
 
@@ -190,22 +194,21 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
                 var val = d[field];
                 values.push(val);
             });
+
             var type = getType(values);
             if (type=="string") keyFields.push(field);
-            if (type=="number") valueFields.push(field);
+            if (type=="number" || type=="currency") valueFields.push(field);
             if (type=="string") groupByFields.push(field);
 
         });
 
 
       //Create form inputs
-        var table = createTable();
-        var tbody = table.firstChild;
+        var table = createTable(parent);
         table.style.height = "";
-        parent.appendChild(table);
-        createDropdown(tbody,"Key","key");
-        createDropdown(tbody,"Value","value");
-        createDropdown(tbody,"Group By","groupBy");
+        createDropdown(table,"Key","key");
+        createDropdown(table,"Value","value");
+        createDropdown(table,"Group By","groupBy");
 
 
       //Populate key pulldown
@@ -224,21 +227,16 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
             treeMapInputs.groupBy.add(field,field);
         });
 
+
       //Select default options
-        if (chartConfig.key){
-            treeMapInputs.key.setValue(chartConfig.key, false);
-        }
-        else{
-            treeMapInputs.key.setValue(keyFields[0], false);
-        }
-        if (chartConfig.value){
-            treeMapInputs.value.setValue(chartConfig.value, false);
-        }
-        else{
-            treeMapInputs.value.setValue(valueFields[0], false);
-        }
+        if (!chartConfig.key) chartConfig.key = keyFields[0];
+        treeMapInputs.key.setValue(chartConfig.key, true);
+
+        if (!chartConfig.value) chartConfig.value = valueFields[0];
+        treeMapInputs.value.setValue(chartConfig.value, true);
+
         if (chartConfig.groupBy){
-            treeMapInputs.groupBy.setValue(chartConfig.groupBy, false);
+            treeMapInputs.groupBy.setValue(chartConfig.groupBy, true);
         }
     };
 
@@ -246,26 +244,20 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
   //**************************************************************************
   //** createDropdown
   //**************************************************************************
-    var createDropdown = function(tbody,displayName,inputType){
-        var tr, td;
+    var createDropdown = function(table, label, inputType){
+        var td;
 
-        tr = document.createElement("tr");
-        tbody.appendChild(tr);
-        td = document.createElement("td");
-        tr.appendChild(td);
-        td.innerHTML= displayName+":";
+      //Add row for label
+        td = table.addRow().addColumn();
+        td.innerHTML= label+":";
 
-        tr = document.createElement("tr");
-        tbody.appendChild(tr);
-        td = document.createElement("td");
-        tr.appendChild(td);
-
-
+      //Add row for pulldown
+        td = table.addRow().addColumn();
         treeMapInputs[inputType] = new javaxt.dhtml.ComboBox(td, {
             style: config.style.combobox,
             readOnly: true
         });
-        treeMapInputs[inputType].clear();
+
         treeMapInputs[inputType].onChange = function(name, value){
             chartConfig[inputType] = value;
             createPreview();
@@ -354,7 +346,7 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
                             ]
                         }
                     ]
-                },
+                }
 
             ]
         });
@@ -362,7 +354,7 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
 
 
 
-      //Set initial value for Day label
+      //Set initial value for group label
         var groupLabelField = form.findField("groupLabel");
         var groupLabel = chartConfig.groupLabel;
         groupLabelField.setValue(groupLabel===true ? true : false);
@@ -404,6 +396,15 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
 
         styleEditor.showAt(108,57);
         form.resize();
+    };
+
+
+  //**************************************************************************
+  //** editGroup
+  //**************************************************************************
+    var editGroup = function(arr){
+        if (!arr || arr.length==0) return;
+        //console.log(arr);
     };
 
 
