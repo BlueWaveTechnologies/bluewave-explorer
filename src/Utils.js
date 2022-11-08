@@ -1057,6 +1057,179 @@ bluewave.utils = {
             bluewave.utils.pixel = pixel;
         }
         return pixel;
+    },
+
+
+  //**************************************************************************
+  //** parseCSV
+  //**************************************************************************
+  /** Used to parse a delimited data. Returns an array or rows and columns.
+   */
+    parseCSV: function(text, options){
+        if (!options) options = {};
+        var defaultConfig = {
+            headers: false,
+            quote: "\"",
+            separator: ","
+        };
+        javaxt.dhtml.utils.merge(options, defaultConfig);
+        options.headers = false;
+        return alasql.from.CSV(text, options, null, 0, null);
+    },
+
+
+  //**************************************************************************
+  //** parseXLS
+  //**************************************************************************
+  /** Used to parse an excel file (xls or xlsx). Returns an array of sheets in
+   *  the file.
+   */
+    parseXLS: function(data, options){
+        if (!options) options = {};
+
+      //Get sheet.js
+        var XLSX = alasql.utils.global.XLSX;
+
+
+      //Get data type and update data as needed
+        var dataType = 'binary';
+        if (data instanceof ArrayBuffer){ //e.g. Data from FileReader.readAsArrayBuffer()
+            dataType = 'base64';
+
+          //https://github.com/SheetJS/js-xlsx/blob/5ae6b1965bfe3764656a96f536b356cd1586fec7/README.md
+            var o = '',
+                    l = 0,
+                    w = 10240;
+            for (; l < data.byteLength / w; ++l)
+                    o += String.fromCharCode.apply(null, new Uint8Array(data.slice(l * w, l * w + w)));
+            o += String.fromCharCode.apply(null, new Uint8Array(data.slice(l * w)));
+
+            data = btoa(o);
+        }
+
+
+      //Parse workbook
+        var workbook = XLSX.read(data, {type: dataType, ...alasql.options.excel, ...options});
+        var sheetNames = workbook.SheetNames;
+        if (!sheetNames) sheetNames = [];
+
+
+      //Return sheets
+        var sheets = [];
+        sheetNames.forEach((name, i)=>{
+            sheets.push({
+                name: name,
+                getData: function(options){
+                    if (!options) options = {};
+                    var defaultConfig = {
+                        headers: false
+                    };
+                    javaxt.dhtml.utils.merge(options, defaultConfig);
+                    options.headers = false;
+                    return bluewave.utils.parseWorkbook(this.name, workbook, options);
+                }
+            });
+        });
+        return sheets;
+    },
+
+
+  //**************************************************************************
+  //** parseWorkbook
+  //**************************************************************************
+  /** Returns rows from a given sheet in a workbook. Code is adopted from
+   *  https://github.com/AlaSQL/alasql/blob/develop/src/84from.js
+   */
+    parseWorkbook: function(sheetid, workbook, opt){
+        if (!opt) opt = {};
+
+
+        function getHeaderText(text) {
+            // if casesensitive option is set to false and there is a text value return lowercase value of text
+            if (text && alasql.options.casesensitive === false) {
+                    return text.toLowerCase();
+            } else {
+                    return text;
+            }
+        }
+
+        var range;
+        var res = [];
+        if (typeof opt.range === 'undefined') {
+                range = workbook.Sheets[sheetid]['!ref'];
+        } else {
+                range = opt.range;
+                if (workbook.Sheets[sheetid][range]) {
+                        range = workbook.Sheets[sheetid][range];
+                }
+        }
+        // if range has some value then data is present in the current sheet
+        // else current sheet is empty
+        if (range) {
+                var rg = range.split(':');
+                var col0 = rg[0].match(/[A-Z]+/)[0];
+                var row0 = +rg[0].match(/[0-9]+/)[0];
+                var col1 = rg[1].match(/[A-Z]+/)[0];
+                var row1 = +rg[1].match(/[0-9]+/)[0];
+                //		console.log(114,rg,col0,col1,row0,row1);
+                //		console.log(114,rg,alasql.utils.xlscn(col0),alasql.utils.xlscn(col1));
+
+                var hh = {};
+                var xlscnCol0 = alasql.utils.xlscn(col0);
+                var xlscnCol1 = alasql.utils.xlscn(col1);
+                for (var j = xlscnCol0; j <= xlscnCol1; j++) {
+                        var col = alasql.utils.xlsnc(j);
+                        if (opt.headers) {
+                                if (workbook.Sheets[sheetid][col + '' + row0]) {
+                                        hh[col] = getHeaderText(workbook.Sheets[sheetid][col + '' + row0].v);
+                                } else {
+                                        hh[col] = getHeaderText(col);
+                                }
+                        } else {
+                                hh[col] = col;
+                        }
+                }
+                if (opt.headers) {
+                        row0++;
+                }
+                for (var i = row0; i <= row1; i++) {
+
+                        var row;
+                        if (opt.headers) {
+                            row = {};
+                        }
+                        else{
+                            row = [];
+                        }
+
+
+                        for (var j = xlscnCol0; j <= xlscnCol1; j++) {
+                                var col = alasql.utils.xlsnc(j);
+                                var val = null;
+                                if (workbook.Sheets[sheetid][col + '' + i]) {
+                                    val = workbook.Sheets[sheetid][col + '' + i].v;
+                                }
+
+                                    if (opt.headers) {
+                                        if (val) row[hh[col]] = val;
+                                    }
+                                    else{
+                                        row.push(val);
+                                    }
+                        }
+                        res.push(row);
+                }
+        } else {
+                res.push([]);
+        }
+
+        // Remove last empty line (issue #548)
+        if (res.length > 0 && res[res.length - 1] && Object.keys(res[res.length - 1]).length == 0) {
+                res.pop();
+        }
+
+        return res;
+
     }
 
 };
