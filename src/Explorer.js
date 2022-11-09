@@ -31,17 +31,6 @@ bluewave.Explorer = function(parent, config) {
        */
         nodes: [
             {
-                title: "CSV Data",
-                type: "csv",
-                icon: "fas fa-file-csv",
-                editor: {
-                    width: 1060,
-                    height: 600,
-                    resizable: true,
-                    class: bluewave.editor.CsvEditor
-                }
-            },
-            {
                 title: "Pie Chart",
                 type: "pieChart",
                 icon: "fas fa-chart-pie",
@@ -52,7 +41,7 @@ bluewave.Explorer = function(parent, config) {
                     class: bluewave.editor.PieEditor
                 },
                 inputNodes: [
-                    "csv", "database", "sankeyChart"
+                    "datafile", "filter", "sankeyChart"
                 ]
             },
             {
@@ -66,7 +55,7 @@ bluewave.Explorer = function(parent, config) {
                     class: bluewave.editor.BarEditor
                 },
                 inputNodes: [
-                    "csv", "database"
+                    "datafile", "filter"
                 ]
             },
             {
@@ -80,7 +69,7 @@ bluewave.Explorer = function(parent, config) {
                     class: bluewave.editor.LineEditor
                 },
                 inputNodes: [
-                    "csv", "database"
+                    "datafile", "filter"
                 ]
             },
             {
@@ -94,7 +83,7 @@ bluewave.Explorer = function(parent, config) {
                     class: bluewave.editor.HistogramEditor
                 },
                 inputNodes: [
-                    "csv", "database"
+                    "datafile", "filter"
                 ]
             },
             {
@@ -108,7 +97,7 @@ bluewave.Explorer = function(parent, config) {
                     class: bluewave.editor.ScatterEditor
                 },
                 inputNodes: [
-                    "csv", "database"
+                    "datafile", "filter"
                 ]
             },
             {
@@ -122,7 +111,7 @@ bluewave.Explorer = function(parent, config) {
                     class: bluewave.editor.MapEditor
                 },
                 inputNodes: [
-                    "csv", "database"
+                    "datafile", "filter"
                 ]
             },
             {
@@ -136,7 +125,7 @@ bluewave.Explorer = function(parent, config) {
                     class: bluewave.editor.TreeMapEditor
                 },
                 inputNodes: [
-                    "csv", "database"
+                    "datafile", "filter"
                 ]
             },
             {
@@ -150,7 +139,7 @@ bluewave.Explorer = function(parent, config) {
                     class: bluewave.editor.CalendarEditor
                 },
                 inputNodes: [
-                    "csv", "database"
+                    "datafile", "filter"
                 ]
             },
             {
@@ -164,6 +153,10 @@ bluewave.Explorer = function(parent, config) {
                     class: bluewave.editor.SankeyEditor
                 }
             }
+        ],
+
+        supportedFileTypes: [
+            "csv", "tab", "tsv", "xls", "xlsx", "pdf"
         ]
     };
 
@@ -742,7 +735,7 @@ bluewave.Explorer = function(parent, config) {
         for (var key in nodes) {
             if (nodes.hasOwnProperty(key)){
                 var node = nodes[key];
-                if (node.type==="pdf" || node.type==="csv"){
+                if (isValidFile(node.type)){
                     fileNodes.push(node);
                 }
             }
@@ -1071,9 +1064,9 @@ bluewave.Explorer = function(parent, config) {
                 var arr = [];
                 for (var i=0; i<files.length; i++) {
                     var file = files[i];
-                    var fileName = file.name.toLowerCase();
-                    var ext = fileName.substring(fileName.lastIndexOf(".")+1);
-                    if (ext==="csv" || ext==="pdf"){
+                    if (isValidFile(file)){
+
+                        var fileName = file.name.toLowerCase();
                         if (existingFiles[fileName]){
                             //notify user?
                         }
@@ -1098,20 +1091,24 @@ bluewave.Explorer = function(parent, config) {
                     }
 
                     var file = arr.shift();
-                    var formData = new FormData();
-                    formData.append(file.name, file);
+                    var ext = getFileExtension(file);
+                    if (isValidFile(ext)){
+                        var formData = new FormData();
+                        formData.append(file.name, file);
 
-                    if (uploads>0){
-                        x+=35;
-                        y+=85;
+                        if (uploads>0){
+                            x+=35;
+                            y+=85;
+                        }
+                        uploads++;
+
+
+                        addNodeToDrawFlow(ext, x, y, file);
+
+
+                        upload();
+
                     }
-                    uploads++;
-
-                    addNodeToDrawFlow(ext, x, y, file);
-
-
-                    upload();
-
 
 //                    post("document", formData, {
 //                        success: function(text){
@@ -1180,18 +1177,21 @@ bluewave.Explorer = function(parent, config) {
 
 
       //Get node config for the given node type
-        var nodeConfig;
-        config.nodes.every((n)=>{
-            if (n.type===nodeType){
-                nodeConfig = n;
-                return false;
-            }
-            return true;
-        });
+        var nodeConfig = getNodeConfig(nodeType);
         if (!nodeConfig){
             console.log("Unsupported Node Type: " + nodeType);
             return;
         }
+
+      //Tweak nodeConfig if we have a file
+        if (file){
+            nodeConfig.type = "datafile";
+            nodeConfig.title = file.name;
+        }
+
+
+      //Reset nodeType using nodeConfig
+        nodeType = nodeConfig.type;
 
 
 
@@ -1246,7 +1246,9 @@ bluewave.Explorer = function(parent, config) {
 
           //Instantiage node editor with the file
             node.file = file;
-            getNodeEditor(node);
+            node.config.fileName = file.name;
+            var editor = getNodeEditor(node);
+            if (editor) editor.show();
 
         }
     };
@@ -1310,21 +1312,75 @@ bluewave.Explorer = function(parent, config) {
 
 
   //**************************************************************************
-  //** getNodeEditor
+  //** getNodeConfig
   //**************************************************************************
-    var getNodeEditor = function(node){
-
-
-      //Find config associated with the node
+    var getNodeConfig = function(nodeType){
         var nodeConfig;
-        config.nodes.every(function(n){
-            if (n.type===node.type){
+
+      //Find nodeConfig from list of default "nodes" (see defaultConfig for an example)
+        config.nodes.every((n)=>{
+            if (n.type===nodeType){
                 nodeConfig = n;
                 return false;
             }
             return true;
         });
 
+
+      //If nodeConfig not found in the explorer config, check if the "nodeType"
+      //represents a valid file extension (e.g. "csv")
+        if (!nodeConfig && (nodeType==="datafile" || isValidFile(nodeType))){
+
+
+            switch (nodeType){
+              case "csv":
+              case "xls":
+              case "xlsx":
+              case "datafile":
+
+              //Set icon for the node
+                var icon = "fas fa-file-alt";
+                if (nodeType==="csv"){
+                    icon = "fas fa-file-csv";
+                }
+                if (nodeType==="xls" || nodeType==="xlsx"){
+                    icon = "fas fa-file-excel";
+                }
+
+              //Create nodeConfig. Note for "datafile" nodeType all we care
+              //about is the editor.
+                nodeConfig = {
+                    title: nodeType + " Data",
+                    icon: icon,
+                    editor: {
+                        width: 1060,
+                        height: 600,
+                        resizable: true,
+                        class: bluewave.editor.CsvEditor
+                    }
+                };
+
+                break;
+
+              case "pdf":
+                var icon = "fas fa-file-pdf";
+
+                break;
+            }
+        }
+
+        return nodeConfig;
+    };
+
+
+  //**************************************************************************
+  //** getNodeEditor
+  //**************************************************************************
+    var getNodeEditor = function(node){
+
+
+      //Find config associated with the node
+        var nodeConfig = getNodeConfig(node.type);
         if (!nodeConfig) return;
 
 
@@ -1333,6 +1389,15 @@ bluewave.Explorer = function(parent, config) {
       //Instantiate node editor as needed
         var editor = nodeConfig.editor;
         if (editor.class){
+
+
+          //Update default titles for files
+            if (node.type==="datafile"){
+                editor.title = node.config.fileName;
+            }
+
+
+          //Instantiate editor and assign it to the nodeConfig
             editor = createNodeEditor(editor);
             nodeConfig.editor = editor;
 
@@ -1436,18 +1501,20 @@ bluewave.Explorer = function(parent, config) {
                                 node.config = chartConfig;
                                 updateTitle(node, node.config.chartTitle);
                                 waitmask.show();
-                                var el = editor.getChart();
-                                if (el.show) el.show();
-                                setTimeout(function(){
-                                    createPreview(el, function(canvas){
-                                        if (canvas && canvas.toDataURL){
-                                            node.preview = canvas.toDataURL("image/png");
-                                            createThumbnail(node, canvas);
-                                        }
-                                        win.close();
-                                        waitmask.hide();
-                                    }, this);
-                                },800);
+                                if (editor.getChart){
+                                    var el = editor.getChart();
+                                    if (el.show) el.show();
+                                    setTimeout(function(){
+                                        createPreview(el, function(canvas){
+                                            if (canvas && canvas.toDataURL){
+                                                node.preview = canvas.toDataURL("image/png");
+                                                createThumbnail(node, canvas);
+                                            }
+                                            win.close();
+                                            waitmask.hide();
+                                        }, this);
+                                    },800);
+                                }
                             }
                             else{
                                 updateTitle(node, node.config.chartTitle);
@@ -2135,6 +2202,41 @@ bluewave.Explorer = function(parent, config) {
             createMenuButton(node.type, node.icon, node.title);
         }
     };
+
+
+  //**************************************************************************
+  //** getFileExtension
+  //**************************************************************************
+    var getFileExtension = function(file){
+        var fileName = file.name.toLowerCase();
+        var ext = fileName.substring(fileName.lastIndexOf(".")+1);
+        return ext;
+    };
+
+
+  //**************************************************************************
+  //** isValidFile
+  //**************************************************************************
+    var isValidFile = function(f){
+        var ext;
+        if (typeof f === "string"){
+            ext = f;
+        }
+        else{
+            ext = getFileExtension(f);
+        }
+
+        var foundMatch = false;
+        for (var i=0; i<config.supportedFileTypes.length; i++){
+            if (config.supportedFileTypes[i]===ext){
+                foundMatch = true;
+                break;
+            }
+        }
+
+        return foundMatch;
+    };
+
 
 
   //**************************************************************************
