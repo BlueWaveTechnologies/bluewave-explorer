@@ -108,13 +108,11 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
 
 
       //Get input data
-        inputData = [];
         for (var key in node.inputs) {
             if (node.inputs.hasOwnProperty(key)){
-                var csv = node.inputs[key].csv;
-                if (typeof csv === "string"){
-                    inputData.push(d3.csvParse(csv));
-                }
+                var inputNode = node.inputs[key];
+                var data = getData(inputNode.data, inputNode.config);
+                if (data.length>0) inputData.push(data);
             }
         }
 
@@ -415,9 +413,9 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
     var onRender = javaxt.dhtml.utils.onRender;
     var createTable = javaxt.dhtml.utils.createTable;
     var createDashboardItem = bluewave.utils.createDashboardItem;
-    var createSlider = bluewave.utils.createSlider;
     var addTextEditor = bluewave.utils.addTextEditor;
     var getType = bluewave.chart.utils.getType;
+    var getData = bluewave.utils.getData;
 
     init();
 };

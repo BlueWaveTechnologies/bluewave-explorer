@@ -47,16 +47,15 @@ bluewave.editor.CalendarEditor = function(parent, config) {
         chartConfig = config.chart;
 
 
-        let table = createTable();
-        let tbody = table.firstChild;
-        var tr = document.createElement("tr");
-        tbody.appendChild(tr);
-        parent.appendChild(table);
-        me.el = table;
+      //Create table with 2 columns
+        var table = createTable(parent);
+        var tr = table.addRow();
         var td;
+        me.el = table;
 
-        td = document.createElement("td");
-        tr.appendChild(td);
+
+      //Create chart options
+        td = tr.addColumn();
         let div = document.createElement("div");
         div.className = "chart-editor-options";
         td.appendChild(div);
@@ -64,11 +63,10 @@ bluewave.editor.CalendarEditor = function(parent, config) {
 
 
       //Create chart preview
-        td = document.createElement("td");
+        td = tr.addColumn();
         td.className = "chart-editor-preview";
         td.style.width = "100%";
         td.style.height = "100%";
-        tr.appendChild(td);
         panel = createDashboardItem(td,{
             width: "100%",
             height: "100%",
@@ -112,13 +110,11 @@ bluewave.editor.CalendarEditor = function(parent, config) {
 
 
       //Get input data
-        inputData = [];
         for (var key in node.inputs) {
             if (node.inputs.hasOwnProperty(key)){
-                var csv = node.inputs[key].csv;
-                if (typeof csv === "string"){
-                    inputData.push(d3.csvParse(csv));
-                }
+                var inputNode = node.inputs[key];
+                var data = getData(inputNode.data, inputNode.config);
+                if (data.length>0) inputData.push(data);
             }
         }
 
@@ -198,7 +194,7 @@ bluewave.editor.CalendarEditor = function(parent, config) {
             });
             var type = getType(values);
             if (type=="date") dateFields.push(field);
-            if (type=="number") valueFields.push(field);
+            if (type=="number" || type=="currency") valueFields.push(field);
         });
 
 
@@ -453,6 +449,7 @@ bluewave.editor.CalendarEditor = function(parent, config) {
     var createSlider = bluewave.utils.createSlider;
     var addTextEditor = bluewave.utils.addTextEditor;
     var getType = bluewave.chart.utils.getType;
+    var getData = bluewave.utils.getData;
 
     init();
 };

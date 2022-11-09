@@ -19,7 +19,8 @@ bluewave.editor.ScatterEditor = function(parent, config) {
             pointColor: "#6699cc",
             pointRadius: 7,
             pointOpacity: 0.8,
-            showRegLine: false
+            showRegLine: false,
+            showTooltip: true
         }
     };
 
@@ -115,13 +116,11 @@ bluewave.editor.ScatterEditor = function(parent, config) {
 
 
       //Get input data
-        inputData = [];
         for (var key in node.inputs) {
             if (node.inputs.hasOwnProperty(key)){
-                var csv = node.inputs[key].csv;
-                if (typeof csv === "string"){
-                    inputData.push(d3.csvParse(csv));
-                }
+                var inputNode = node.inputs[key];
+                var data = getData(inputNode.data, inputNode.config);
+                if (data.length>0) inputData.push(data);
             }
         }
 
@@ -531,6 +530,8 @@ bluewave.editor.ScatterEditor = function(parent, config) {
     var createSlider = bluewave.utils.createSlider;
     var addTextEditor = bluewave.utils.addTextEditor;
     var round = javaxt.dhtml.utils.round;
+    var getType = bluewave.chart.utils.getType;
+    var getData = bluewave.utils.getData;
 
     init();
 };

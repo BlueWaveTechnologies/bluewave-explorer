@@ -117,21 +117,16 @@ bluewave.editor.PieEditor = function(parent, config) {
 
 
       //Get input data
-        inputData = [];
         for (var key in node.inputs) {
             if (node.inputs.hasOwnProperty(key)){
-                var input = node.inputs[key];
-                var csv = input.csv;
-                if (csv === undefined){
+                var inputNode = node.inputs[key];
+                var data = getData(inputNode.data, inputNode.config);
+                if (data.length>0) inputData.push(data);
+                else{
 
                   //Special case for supply chain data
-                    var inputConfig = input.config;
+                    var inputConfig = inputNode.config;
                     if (inputConfig) inputData.push(inputConfig);
-                }
-                else {
-                    if (typeof csv === "string"){
-                        inputData.push(d3.csvParse(csv));
-                    }
                 }
             }
         }
@@ -626,6 +621,7 @@ bluewave.editor.PieEditor = function(parent, config) {
     var createSlider = bluewave.utils.createSlider;
     var addTextEditor = bluewave.utils.addTextEditor;
     var getType = bluewave.chart.utils.getType;
+    var getData = bluewave.utils.getData;
 
     init();
 };

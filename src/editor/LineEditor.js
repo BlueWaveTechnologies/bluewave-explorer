@@ -131,13 +131,11 @@ bluewave.editor.LineEditor = function(parent, config) {
 
 
       //Get input data
-        inputData = [];
         for (var key in node.inputs) {
             if (node.inputs.hasOwnProperty(key)){
-                var csv = node.inputs[key].csv;
-                if (typeof csv === "string"){
-                    inputData.push(d3.csvParse(csv));
-                }
+                var inputNode = node.inputs[key];
+                var data = getData(inputNode.data, inputNode.config);
+                if (data.length>0) inputData.push(data);
             }
         }
 
@@ -457,9 +455,16 @@ bluewave.editor.LineEditor = function(parent, config) {
                 if (layer.group){
 
 
-                    let groupData = d3.nest()
-                    .key(function(d){return d[layer.group];})
-                    .entries(data);
+
+                    var groupData = [];
+                    var map = d3.group(data, d => d[layer.group]);
+                    for (const key of map.keys()) {
+                        groupData.push({
+                            key: key,
+                            values: map.get(key)
+                        });
+                    }
+
 
                     var subgroups = groupData.map(function(d) { return d["key"]; });
 
@@ -1035,6 +1040,8 @@ bluewave.editor.LineEditor = function(parent, config) {
     var createSlider = bluewave.utils.createSlider;
     var addTextEditor = bluewave.utils.addTextEditor;
     var getStyleEditor = bluewave.utils.getStyleEditor;
+    var getType = bluewave.chart.utils.getType;
+    var getData = bluewave.utils.getData;
 
     init();
 };
