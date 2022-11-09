@@ -167,10 +167,8 @@ bluewave.editor.CsvEditor = function(parent, config) {
             readOnly: true
         });
         combobox.onChange = function(val){
-            config.data = {
-                hasHeader: false,
-                sheetName: val
-            };
+            config.data.hasHeader = false;
+            config.data.sheetName = val;
             updateGrid();
         };
 
