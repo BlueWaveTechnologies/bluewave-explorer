@@ -393,9 +393,19 @@ bluewave.utils = {
         var w = javaxt.dhtml.utils.getSuggestedColumnWidths(records, 10);
         var columns = records[0];
         for (var i=0; i<columns.length; i++){
+
+          //Get suggested column width
+            var columnWidth = w.suggestedWidths[i];
+            var minWidth = null;
+            if (columnWidth==="100%" && columns.length>1){
+                minWidth = Math.min(w.widths[i], 175);
+            }
+
+          //Update column config
             columnConfig.push({
                header: hasHeader ? columns[i] : (i+1),
-               width: w.suggestedWidths[i],
+               width: columnWidth,
+               minWidth: minWidth,
                sortable: false
             });
         }
