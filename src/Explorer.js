@@ -18,10 +18,11 @@ bluewave.Explorer = function(parent, config) {
 
         toolbar: {
             nodes: [
+                "sankeyChart",
                 "pieChart", "barChart", "lineChart",
                 "histogramChart", "scatterChart",
                 "mapChart", "treeMapChart", "calendarChart",
-                "sankeyChart"
+                "filter"
             ]
         },
 
@@ -152,6 +153,20 @@ bluewave.Explorer = function(parent, config) {
                     resizable: true,
                     class: bluewave.editor.SankeyEditor
                 }
+            },
+            {
+                title: "Filter",
+                type: "filter",
+                icon: "fas fa-filter",
+                editor: {
+                    width: 1060,
+                    height: 600,
+                    resizable: true,
+                    class: bluewave.editor.FilterEditor
+                },
+                inputNodes: [
+                    "datafile"
+                ]
             }
         ],
 
@@ -289,7 +304,7 @@ bluewave.Explorer = function(parent, config) {
       //Clear drawflow
         drawflow.clear();
 
-      //Reset toolbar buttons
+      //Reset buttons
         for (var buttonName in button) {
             if (button.hasOwnProperty(buttonName)){
                 button[buttonName].disable();
@@ -1493,8 +1508,9 @@ bluewave.Explorer = function(parent, config) {
                         else{
                             //win.close();
                             var editor = win.editor;
-                            var chartConfig = editor.getConfig();
                             var node = editor.getNode();
+                            if (editor.getData) node.data = editor.getData();
+                            var chartConfig = editor.getConfig();
                             var orgConfig = node.config;
                             if (!orgConfig) orgConfig = {};
                             if (isDirty(chartConfig, orgConfig)){
