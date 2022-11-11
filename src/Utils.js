@@ -186,7 +186,7 @@ bluewave.utils = {
             };
         }
 
-        var callout = javaxt.express.formError;
+        var callout = bluewave.utils.formError;
         if (!callout){
             callout = new javaxt.dhtml.Callout(document.body,{
                 style:{
@@ -194,7 +194,7 @@ bluewave.utils = {
                     arrow: "error-callout-arrow"
                 }
             });
-            javaxt.express.formError = callout;
+            bluewave.utils.formError = callout;
         }
 
         callout.getInnerDiv().innerHTML = msg;
@@ -223,6 +223,16 @@ bluewave.utils = {
         }
 
         return new javaxt.dhtml.Button(toolbar, btn);
+    },
+
+
+  //**************************************************************************
+  //** createSpacer
+  //**************************************************************************
+    createSpacer: function(toolbar){
+        var div = document.createElement("div");
+        div.className = "toolbar-spacer";
+        toolbar.appendChild(div);
     },
 
 
@@ -386,6 +396,7 @@ bluewave.utils = {
   //** createGrid
   //**************************************************************************
     createGrid: function(records, hasHeader, gridContainer, config){
+        gridContainer.innerHTML = "";
 
 
       //Set column config
@@ -1273,3 +1284,165 @@ bluewave.utils = {
     }
 
 };
+
+
+
+
+bluewave.utils.Confirm = null;
+
+  //**************************************************************************
+  //** confirm
+  //**************************************************************************
+  /** Overrides the native javascript confirm() method by creating a
+   *  bluewave.utils.Confirm window.
+   */
+    var confirm = function(msg, config){
+
+        if (!(typeof(msg) === 'string' || msg instanceof String)){
+            config = msg;
+        }
+
+
+        javaxt.dhtml.utils.merge(config, {
+            title: "Confirm",
+            text: msg
+        });
+
+
+        var win = bluewave.utils.Confirm;
+        if (!win){
+            var body = document.getElementsByTagName("body")[0];
+
+            var buttonDiv = document.createElement("div");
+            buttonDiv.className = "button-div";
+
+            var createButton = function(label, result){
+                var input = document.createElement("input");
+                input.type = "button";
+                input.className = "form-button";
+                input.onclick = function(){
+                    win.result = this.result;
+                    win.close();
+                };
+                input.setLabel = function(label){
+                    if (label) this.name = this.value = label;
+                };
+                input.setValue = function(b){
+                    if (b===true || b===false) this.result = b;
+                };
+                input.update = function(config){
+                    if (config){
+                        this.setLabel(config.label);
+                        this.setValue(config.value);
+                    }
+                };
+                input.setLabel(label);
+                input.setValue(result);
+                buttonDiv.appendChild(input);
+                return input;
+            };
+
+
+            win = bluewave.utils.Confirm = new javaxt.dhtml.Window(body, {
+                width: 450,
+                height: 150,
+                valign: "top",
+                modal: true,
+                footer: buttonDiv,
+                style: {
+                    panel: "window",
+                    header: "window-header",
+                    title: "window-title",
+                    buttonBar: "window-header-button-bar",
+                    button: "window-header-button",
+                    body: "window-body confirm-body"
+                }
+            });
+
+
+            win.leftButton = createButton("OK", true);
+            win.rightButton = createButton("Cancel", false);
+        }
+
+
+        win.setTitle(config.title);
+        win.setContent(config.text.replace("\n","<p></p>"));
+        win.leftButton.update(config.leftButton);
+        win.rightButton.update(config.rightButton);
+        win.result = false;
+        win.onClose = function(){
+            var callback = config.callback;
+            if (callback) callback.apply(win, [win.result]);
+        };
+        win.show();
+        return false;
+    };
+
+
+    
+bluewave.utils.Alert = null;
+
+  //**************************************************************************
+  //** alert
+  //**************************************************************************
+  /** Overrides the native javascript alert() method by creating a
+   *  bluewave.utils.Alert window.
+   */
+    var alert = function(msg){
+
+        if (msg==null) msg = "";
+
+
+      //Special case for ajax request
+        if (!(typeof(msg) === 'string' || msg instanceof String)){
+            if (typeof msg.responseText !== 'undefined'){
+                msg = (msg.responseText.length>0 ? msg.responseText : msg.statusText);
+                if (!msg) msg = "Unknown Server Error";
+            }
+        }
+
+        var win = bluewave.utils.Alert;
+
+        if (!win){
+
+            var body = document.getElementsByTagName("body")[0];
+
+
+            var outerDiv = document.createElement('div');
+            outerDiv.style.width = "100%";
+            outerDiv.style.height = "100%";
+            outerDiv.style.position = "relative";
+            outerDiv.style.cursor = "inherit";
+            var innerDiv = document.createElement('div');
+            innerDiv.style.width = "100%";
+            innerDiv.style.height = "100%";
+            innerDiv.style.position = "absolute";
+            innerDiv.style.overflowX = 'hidden';
+            innerDiv.style.cursor = "inherit";
+            outerDiv.appendChild(innerDiv);
+
+
+            win = bluewave.utils.Alert = new javaxt.dhtml.Window(body, {
+                width: 450,
+                height: 200,
+                valign: "top",
+                modal: true,
+                title: "Alert",
+                body: outerDiv,
+                style: {
+                    panel: "window",
+                    header: "window-header alert-header",
+                    title: "window-title",
+                    buttonBar: "window-header-button-bar",
+                    button: "window-header-button",
+                    body: "window-body alert-body"
+                }
+            });
+            win.div = innerDiv;
+        }
+
+
+        win.div.innerHTML = msg;
+        win.show();
+
+    };
