@@ -1,52 +1,9 @@
-@import url(https://fonts.googleapis.com/css?family=Open+Sans);
-@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@300&display=swap');
-
-html, body {
-    height:100%;
-    margin:0;
-}
-
-body {
-    background-color: #f5f5f5;
-    color: #000000;
-}
-
-body, textarea, input, select, td, th {
-    font-family: 'Open Sans',helvetica,arial,verdana,sans-serif;
-}
-
-
-
-/* override the default style for the javaxt callout
-   prevents overflow issues in the app header
-*/
-.callout-arrow {
-    padding: 10px;
-}
 
 
 
 /**************************************************************************/
-/** Dashboard
+/** Dashboard Item
 /**************************************************************************/
-
-.dashboard-title {
-    height: 70px;
-    background-color: #fcfcfc;
-    text-align: center;
-    line-height: 59px;
-    color: #007CBA;
-    font-size: 20px;
-}
-
-.dashboard-footer {
-    background-color: #e8e8e8;
-    color: #777;
-    font-size: 12px;
-    padding: 3px;
-    line-height: 20px;
-}
-
 
 .dashboard-item {
     background-color: #fff;
@@ -83,17 +40,10 @@ body, textarea, input, select, td, th {
 }
 
 
-.dashboard {
-    padding: 10px;
-}
 
-.dashboard-toolbar {
-    height: 36px;
-    padding: 4px 10px;
-    background-color: #e8e8e8;
-    border-top: 1px solid #dcdcdc;
-    border-bottom: 1px solid #dcdcdc;
-}
+/**************************************************************************/
+/** Dashboard Slider
+/**************************************************************************/
 
 .dashboard-slider {
   -webkit-appearance: none;
@@ -112,56 +62,6 @@ body, textarea, input, select, td, th {
 }
 
 
-
-
-
-/**************************************************************************/
-/** Toolbar Icons
-/**************************************************************************/
-
-.toolbar-button-icon.fas {
-    color: #5a606d;
-    font-size: 16px;
-}
-
-.toolbar-button-icon.fas.fa-check-square {
-    color: green;
-}
-
-/*
-.toolbar-button-icon.fas.fa-trash {
-    color: #8c6c6c;
-}
-*/
-
-.toolbar-button-icon.fas.fa-copy {
-    color: #b59d71;
-}
-
-.toolbar-button-icon.fas.fa-plus-circle {
-    color: #008000; /*green*/
-}
-
-.toolbar-button-icon.fas.fa-edit {
-    color: #864a00; /*brown*/
-}
-
-.toolbar-button-icon.fas.fa-sync-alt {
-    color: #007cba; /*blue*/
-}
-
-.toolbar-button-icon.fas.fa-play {
-    color: #008000; /*green*/
-}
-
-.toolbar-button-icon.fas.fa-stop {
-    color: #000000;
-}
-
-.toolbar-button-icon.fas.fa-times {
-    color: #b11818; /*red - same color as search-bar-cancel*/
-    font-size: 21px;
-}
 
 
 
@@ -291,26 +191,6 @@ body, textarea, input, select, td, th {
     margin-left: -2px;
     margin-top: -4px;
 }
-
-
-.drawflow-toolbar-hint {
-    position: absolute;
-    left: 50px;
-    top: 5px;
-    background: url(../images/arrow.png) no-repeat;
-    width: 85px;
-    height: 120px;
-    color: #ef5646;
-    font-size: 32px;
-    font-family: 'Kalam', cursive;
-}
-.drawflow-toolbar-hint:after {
-    content:"Drag icon onto canvas";
-    line-height: 225px;
-    margin: 0 0 0 82px;
-    white-space: nowrap;
-}
-
 
 .drag-drawflow {
     line-height: 50px;
@@ -760,7 +640,8 @@ svg text {
 /**************************************************************************/
 /** Tooltip
 /**************************************************************************/
-
+/** This class is used by bluewave-charts
+*/
 .tooltip {
     position: absolute;
     background-color: #fff;
