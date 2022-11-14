@@ -178,7 +178,6 @@ bluewave.Explorer = function(parent, config) {
     var dashboardPanel, editPanel, toggleButton, mask, waitmask; //primary components
     var id, name, thumbnail; //dashboard attributes
     var menubar, button = {};
-    var arrow;
     var tooltip, tooltipTimer, lastToolTipEvent; //tooltip
     var drawflow, nodes = {}; //drawflow
     var windows = [];
@@ -521,9 +520,6 @@ bluewave.Explorer = function(parent, config) {
   //**************************************************************************
     var updateButtons = function(){
 
-      //Hide arrow
-        arrow.hide();
-
 
       //Disable all buttons
         for (var key in button) {
@@ -551,23 +547,6 @@ bluewave.Explorer = function(parent, config) {
                 hasVisibleNodes = true;
             }
         }
-
-
-      //Show arrow if there are no nodes in the canvas
-        var showArrow = false;
-        if (!hasVisibleNodes){
-            for (var key in button) {
-                if (button.hasOwnProperty(key)){
-                    var btn = button[key];
-                    if (btn.isEnabled() && btn.el.draggable){
-                        showArrow = true;
-                        break;
-                    }
-                }
-            }
-        }
-        if (showArrow) arrow.show();
-
 
 
       //Enable buttons based on what nodes are in the canvas
@@ -606,13 +585,6 @@ bluewave.Explorer = function(parent, config) {
                 menuButton.enable();
             }
         });
-
-
-
-      //Disable layout as needed
-        if (showArrow){
-            if (button.layout) button.layout.disable();
-        }
 
     };
 
@@ -940,20 +912,6 @@ bluewave.Explorer = function(parent, config) {
         });
 
 
-
-
-
-      //Create little arrow/hint for the toolbar
-        arrow = document.createElement("div");
-        arrow.className = "drawflow-toolbar-hint noselect";
-        arrow.style.display = "none";
-        menubar.appendChild(arrow);
-        arrow.show = function(){
-            config.fx.fadeIn(this,"easeIn",500);
-        };
-        arrow.hide = function(){
-            config.fx.fadeOut(this,"easeIn",100);
-        };
     };
 
 
@@ -1035,7 +993,6 @@ bluewave.Explorer = function(parent, config) {
         e.stopPropagation();
         e.preventDefault();
 
-        arrow.hide();
 
         if (e.type === "touchend") {
             /*
