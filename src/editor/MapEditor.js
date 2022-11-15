@@ -25,6 +25,9 @@ if(!bluewave.editor) bluewave.editor={};
                 backgroundColor: "#fff",
                 landColor: "#dedde0"
             }
+        },
+        data: {
+            politicalBoundaries: "data/" //path to the
         }
     };
 
@@ -1613,7 +1616,8 @@ if(!bluewave.editor) bluewave.editor={};
   /** Used to get counties, states, and countries (TopoJson data)
    */
     var getMapData = function(callback){
-        bluewave.utils.getMapData(function(mapData){
+        var path = config.data.politicalBoundaries;
+        bluewave.utils.getMapData(path, function(mapData){
             counties = mapData.counties;
             states = mapData.states;
             countries = mapData.countries;
