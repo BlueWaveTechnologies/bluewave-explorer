@@ -134,7 +134,7 @@ bluewave.editor.BarEditor = function(parent, config) {
         for (var key in node.inputs) {
             if (node.inputs.hasOwnProperty(key)){
                 var inputNode = node.inputs[key];
-                var data = getData(inputNode.data, inputNode.config);
+                var data = parseData(inputNode.data, inputNode.config);
                 if (data.length>0) inputData.push(data);
             }
         }
@@ -628,7 +628,7 @@ bluewave.editor.BarEditor = function(parent, config) {
     var addTextEditor = bluewave.utils.addTextEditor;
     var getStyleEditor = bluewave.utils.getStyleEditor;
     var getType = bluewave.chart.utils.getType;
-    var getData = bluewave.utils.getData;
+    var parseData = bluewave.utils.parseData;
 
     init();
 };

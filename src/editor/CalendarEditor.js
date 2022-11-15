@@ -113,7 +113,7 @@ bluewave.editor.CalendarEditor = function(parent, config) {
         for (var key in node.inputs) {
             if (node.inputs.hasOwnProperty(key)){
                 var inputNode = node.inputs[key];
-                var data = getData(inputNode.data, inputNode.config);
+                var data = parseData(inputNode.data, inputNode.config);
                 if (data.length>0) inputData.push(data);
             }
         }
@@ -449,7 +449,7 @@ bluewave.editor.CalendarEditor = function(parent, config) {
     var createSlider = bluewave.utils.createSlider;
     var addTextEditor = bluewave.utils.addTextEditor;
     var getType = bluewave.chart.utils.getType;
-    var getData = bluewave.utils.getData;
+    var parseData = bluewave.utils.parseData;
 
     init();
 };

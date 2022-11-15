@@ -155,7 +155,7 @@ if(!bluewave.editor) bluewave.editor={};
         for (var key in node.inputs) {
             if (node.inputs.hasOwnProperty(key)){
                 var inputNode = node.inputs[key];
-                var data = getData(inputNode.data, inputNode.config);
+                var data = parseData(inputNode.data, inputNode.config);
                 if (data.length>0) inputData.push(data);
                 else{
 
@@ -1719,7 +1719,7 @@ if(!bluewave.editor) bluewave.editor={};
     var createSlider = bluewave.utils.createSlider;
 
     var getType = bluewave.chart.utils.getType;
-    var getData = bluewave.utils.getData;
+    var parseData = bluewave.utils.parseData;
     var getNaturalBreaks = bluewave.chart.utils.getNaturalBreaks;
 
 

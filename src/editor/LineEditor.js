@@ -1041,7 +1041,7 @@ bluewave.editor.LineEditor = function(parent, config) {
     var addTextEditor = bluewave.utils.addTextEditor;
     var getStyleEditor = bluewave.utils.getStyleEditor;
     var getType = bluewave.chart.utils.getType;
-    var getData = bluewave.utils.getData;
+    var parseData = bluewave.utils.parseData;
 
     init();
 };
