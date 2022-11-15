@@ -60,10 +60,27 @@ bluewave.utils = {
    *  returns static json data from the "data" directory in the web folder.
    *  If reunning as a service, returns data from the REST endpoint.
    */
-    getData: function(name, callback){
+    getData: function(name, path, callback){
         if (!bluewave.data) bluewave.data = {};
 
-        var url = "data/" + name;
+
+      //Update args if needed for backward compatibility
+        if (arguments.length>1){
+            if (typeof arguments[1] === 'function') {
+                callback = arguments[1];
+                path = "data/";
+            }
+        }
+
+
+      //Update path as needed
+        var idx = path.lastIndexOf("/");
+        if (idx!==path.length-1){
+            path += "/";
+        }
+
+
+        var url = path + name;
         var get = javaxt.dhtml.utils.get;
         var update = function(json){
             if (callback) callback.apply(this, [json]);
@@ -106,7 +123,15 @@ bluewave.utils = {
   //**************************************************************************
   /** Used to get counties, states, and countries (TopoJson data)
    */
-    getMapData: function(callback){
+    getMapData: function(path, callback){
+        if (arguments.length===0) return;
+
+      //Update args if needed for backward compatibility
+        if (typeof arguments[0] === 'function') {
+            callback = arguments[0];
+            path = "data/";
+        }
+
 
         var getData = bluewave.utils.getData;
         if (!bluewave.data) bluewave.data = {};
@@ -117,7 +142,7 @@ bluewave.utils = {
         if (counties){
             if (countries) callback.apply(this, [bluewave.data.mapData]);
             else{
-                getData("countries", function(countryData){
+                getData("countries", path, function(countryData){
                     countries = topojson.feature(countryData, countryData.objects.countries);
                     bluewave.data.mapData.countries = countries;
 
@@ -126,7 +151,7 @@ bluewave.utils = {
             }
         }
         else{
-            getData("counties", function(countyData){
+            getData("counties", path, function(countyData){
 
                 counties = topojson.feature(countyData, countyData.objects.counties);
                 bluewave.data.mapData.counties = counties;
@@ -136,7 +161,7 @@ bluewave.utils = {
 
                 if (countries) callback.apply(this, [bluewave.data.mapData]);
                 else{
-                    getData("countries", function(countryData){
+                    getData("countries", path, function(countryData){
                         countries = topojson.feature(countryData, countryData.objects.countries);
                         bluewave.data.mapData.countries = countries;
 
