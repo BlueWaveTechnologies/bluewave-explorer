@@ -64,8 +64,15 @@ bluewave.editor.CsvEditor = function(parent, config) {
     this.update = function(node){
         me.clear();
 
-      //Update config
-        config.data = merge(node.config, defaultConfig.data);
+
+      //Clone the config so we don't modify the original config object
+        var clone = {};
+        merge(clone, node.config);
+
+
+      //Merge clone with default config
+        merge(clone, defaultConfig.data);
+        config.data = clone;
 
 
       //Update toolbar items
