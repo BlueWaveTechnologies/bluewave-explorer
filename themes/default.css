@@ -1,10 +1,20 @@
+/******************************************************************************
+*  Default Theme Stylesheet
+*******************************************************************************
+*
+*  Common style definitions for bluewave-explorer. This stylesheet renders
+*  components in "light" mode.
+*
+******************************************************************************/
 
 
 
 /**************************************************************************/
 /** Dashboard Item
 /**************************************************************************/
-
+/** Default style for individual cards in a dashboard. Explorer renders
+ *  chart previews in a dashboard item (see createDashboardItem in Utils.js)
+ */
 .dashboard-item {
     background-color: #fff;
     padding: 10px;
@@ -44,7 +54,9 @@
 /**************************************************************************/
 /** Dashboard Slider
 /**************************************************************************/
-
+/** Default style for range sliders that appear in some of the chart
+ *  editors (see createSlider in Utils.js)
+ */
 .dashboard-slider {
   -webkit-appearance: none;
   appearance: none;
@@ -63,12 +75,12 @@
 
 
 
-
-
 /**************************************************************************/
 /** Tooltip
 /**************************************************************************/
-
+/** Default style for the tooltip popups that appear over the button bar
+ *  in Explorer.
+ */
 .tooltip-panel, .tooltip-arrow {
     border: 1px solid #1d6479;
     background: #459db7;
@@ -91,7 +103,9 @@
 /**************************************************************************/
 /** Toggle Button
 /**************************************************************************/
-
+/** Default style for a toggle button (see createToggleButton in Utils.js).
+ *  Explorer uses the switch to change view from "Edit" to "Preview".
+ */
 .toggle-button-bar {
     background-color: #718fb6; /*rgba(0,60,136,.5); */
     display: inline-block;
@@ -136,7 +150,8 @@
 /**************************************************************************/
 /** Drawflow
 /**************************************************************************/
-
+/** Default styles and overides for explorer
+ */
 .drawflow-toolbar {
     position: absolute;
     top: 20px;
@@ -146,6 +161,7 @@
     border-radius: 5px;
     box-shadow: 0 2px 15px 2px #cacaca;
     border: 1px solid #000;
+    color: #fff;
     /*display: table;*/
 }
 
@@ -177,6 +193,7 @@
 }
 
 .drawflow-toolbar-button-icon {
+    color: #fff;
     font-size: 30px;
     text-align: center;
     width: 30px;
@@ -406,6 +423,7 @@
 }
 
 
+
 /**************************************************************************/
 /** Grid panel
 /**************************************************************************/
@@ -422,6 +440,7 @@
     linear-gradient(to right, #f1f1f1 1px, transparent 1px),
     linear-gradient(to bottom, #f1f1f1 1px, transparent 1px);
 }
+
 
 
 /**************************************************************************/
@@ -460,7 +479,8 @@
 /**************************************************************************/
 /** Chart Editor
 /**************************************************************************/
-
+/** Default style for chart editors
+*/
 .chart-editor-preview {
     padding: 10px;
 }
@@ -492,7 +512,9 @@
 /**************************************************************************/
 /** Color Picker
 /**************************************************************************/
-
+/** Default style for the color picker callout that appears in some of the
+ *  chart editors (e.g. MapChart))
+ */
 .color-picker-header {
     padding: 10px 0 4px;
 }
@@ -548,6 +570,60 @@
     height: 12px;
     padding: 12px;
 }
+
+
+
+/**************************************************************************/
+/** Toolbar Icons
+/**************************************************************************/
+/** Default styles for icons that appear in the toolbar in some of the
+ *  chart editors (e.g. FilterEditor)
+ */
+.toolbar-button-icon.fas {
+    color: #5a606d;
+    font-size: 16px;
+}
+
+.toolbar-button-icon.fas.fa-check-square {
+    color: green;
+}
+
+/*
+.toolbar-button-icon.fas.fa-trash {
+    color: #8c6c6c;
+}
+*/
+
+.toolbar-button-icon.fas.fa-copy {
+    color: #b59d71;
+}
+
+.toolbar-button-icon.fas.fa-plus-circle {
+    color: #008000; /*green*/
+}
+
+.toolbar-button-icon.fas.fa-edit {
+    color: #864a00; /*brown*/
+}
+
+.toolbar-button-icon.fas.fa-sync-alt {
+    color: #007cba; /*blue*/
+}
+
+.toolbar-button-icon.fas.fa-play {
+    color: #008000; /*green*/
+}
+
+.toolbar-button-icon.fas.fa-stop {
+    color: #000000;
+}
+
+.toolbar-button-icon.fas.fa-times {
+    color: #b11818; /*red - same color as search-bar-cancel*/
+    font-size: 21px;
+}
+
+
 
 
 
