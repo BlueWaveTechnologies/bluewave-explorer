@@ -107,9 +107,9 @@ bluewave.editor.LineEditor = function(parent, config) {
       //Initialize chart
         lineChart = new bluewave.charts.LineChart(previewArea, {});
         lineChart.onClick = function(el, lineID){
-            var line = lineChart.getLayers()[lineID].line;
-            var layer = lineMap[lineID].layer;
-            editLine(line, lineID);
+            var line = lineChart.getLayers()[lineID+""].line;
+            var layerID = lineMap[lineID].layer;
+            editLine(line, layerID);
         };
     };
 
@@ -134,7 +134,7 @@ bluewave.editor.LineEditor = function(parent, config) {
         for (var key in node.inputs) {
             if (node.inputs.hasOwnProperty(key)){
                 var inputNode = node.inputs[key];
-                var data = getData(inputNode.data, inputNode.config);
+                var data = parseData(inputNode.data, inputNode.config);
                 if (data.length>0) inputData.push(data);
             }
         }
@@ -527,6 +527,45 @@ bluewave.editor.LineEditor = function(parent, config) {
         scaleDropdown.add("Logarithmic", "logarithmic");
         scaleDropdown.setValue("linear");
 
+
+        var xMinDropdown = new javaxt.dhtml.ComboBox(
+            document.createElement("div"),
+            {
+                style: config.style.combobox,
+                readOnly: false
+
+            }
+        );
+
+        var xKeys = [];
+        var layers = chartConfig.layers;
+        inputData.forEach(function (data, i){
+            let layer = layers[i];
+            if (layer.xAxis){
+                data.forEach((d)=>{
+                    xKeys.push(d[layer.xAxis]);
+                });
+            }
+        });
+
+        var xType = getType(xKeys);
+        if (xType=="number" || xType=="currency"){
+            var minX = Number.MAX_VALUE;
+            var maxX = 0;
+            xKeys.forEach((key)=>{
+                var n = bluewave.chart.utils.parseFloat(key);
+                minX = Math.min(n, minX);
+                maxX = Math.max(n, maxX);
+            });
+
+            xMinDropdown.add("0", 0);
+            if (minX!=0) xMinDropdown.add(minX+"", minX);
+            xMinDropdown.setValue(0);
+        }
+
+
+
+
         var form = new javaxt.dhtml.Form(body, {
             style: config.style.form,
             items: [
@@ -609,6 +648,11 @@ bluewave.editor.LineEditor = function(parent, config) {
                                 }
 
                             ]
+                        },
+                        {
+                            name: "xMin",
+                            label: "Min Value",
+                            type: xMinDropdown
                         },
                         {
                             name: "xTicks",
@@ -731,6 +775,11 @@ bluewave.editor.LineEditor = function(parent, config) {
             if (chartConfig.xLabel) chartConfig.xLabel = chartConfig.layers[0].xAxis;
             if (chartConfig.yLabel) chartConfig.yLabel = chartConfig.layers[0].yAxis;
             chartConfig.xTicks = settings.xTicks;
+
+
+            var xMin = bluewave.chart.utils.parseFloat(xMinDropdown.getText());
+            if (!isNaN(xMin)) chartConfig.xMin = xMin;
+
             createLinePreview(lineChart);
         };
 
