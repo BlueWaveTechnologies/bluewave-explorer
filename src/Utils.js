@@ -235,6 +235,8 @@ bluewave.utils = {
   //**************************************************************************
     createButton: function(toolbar, btn){
 
+        btn = JSON.parse(JSON.stringify(btn));
+
         if (btn.icon){
             btn.style.icon = "toolbar-button-icon " + btn.icon;
             delete btn.icon;
