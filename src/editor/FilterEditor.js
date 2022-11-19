@@ -168,6 +168,7 @@ bluewave.editor.FilterEditor = function(parent, config) {
 
       //Update
         combobox.setValue(config.filter.mode, true);
+        editor.setMode(config.filter.mode);
         var code = config.filter.code;
         var defaultCode = getDefaultCode(combobox.getValue());
         if (code){
