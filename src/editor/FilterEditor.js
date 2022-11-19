@@ -53,6 +53,7 @@ bluewave.editor.FilterEditor = function(parent, config) {
 
     var editor;
     var combobox;
+    var waitmask;
 
     var gridContainer, grid; //grid elements
 
@@ -102,6 +103,10 @@ bluewave.editor.FilterEditor = function(parent, config) {
 
       //Add grid container
         createGridContainer(td);
+
+
+      //Create waitmask
+        createWaitMask(td);
 
 
         me.el = table;
@@ -247,18 +252,17 @@ bluewave.editor.FilterEditor = function(parent, config) {
                     rightButton: {label: "No", value: false},
                     callback: function(yes){
                         if (yes){
-
+                            editor.setMode(value);
+                            editor.setValue(getDefaultCode(value));
+                            gridContainer.innerHTML = "";
                         }
                         else{
-
+                            combobox.setValue(prevValue, true);
                         }
                     }
                 });
             }
-
-
         };
-
     };
 
 
@@ -392,6 +396,22 @@ bluewave.editor.FilterEditor = function(parent, config) {
 
 
   //**************************************************************************
+  //** createWaitMask
+  //**************************************************************************
+    var createWaitMask = function(parent){
+        if (javaxt.express){
+            waitmask = new javaxt.express.WaitMask(parent);
+        }
+        else{
+            waitmask = {
+                show: function(){},
+                hide: function(){}
+            };
+        }
+    };
+
+
+  //**************************************************************************
   //** getDefaultCode
   //**************************************************************************
     var getDefaultCode = function(mode){
@@ -424,47 +444,56 @@ bluewave.editor.FilterEditor = function(parent, config) {
         var code = editor.getValue();
         var input = inputData[0];
 
-
-      //Run script and get records
-        var arr;
-        if (mode==="sql"){
-            arr = alasql(code, [input.data]);
-        }
-        else if (mode==="javascript"){
-
-            getRecords = null;
-            var fn = "getRecords = function(data){\n" + code + "\n}";
-            eval(fn);
+        waitmask.show();
+        setTimeout(()=>{
 
 
-            arr = getRecords(input.data);
-        }
-
-
-      //Convert records into a two dimensional array for the grid and chart editors
-        if (arr){
-            data = [];
-            if (arr.length>0){
-                var keys = Object.keys(arr[0]);
-                data.push(keys);
-
-                arr.forEach((d)=>{
-                    var record = [];
-                    keys.forEach((key)=>{
-                        record.push(d[key]);
-                    });
-                    data.push(record);
-                });
-
-                createGrid(data, true, gridContainer, config);
+          //Run script and get records
+            var arr;
+            if (mode==="sql"){
+                arr = alasql(code, [input.data]);
             }
-        }
+            else if (mode==="javascript"){
+
+                getRecords = null;
+                var fn = "getRecords = function(data){\n" + code + "\n}";
+                eval(fn);
 
 
-      //Update filter config
-        config.filter.code = code;
-        config.filter.hasHeader = input.config.hasHeader;
-        config.filter.sheetName = input.config.sheetName;
+                arr = getRecords(input.data);
+            }
+
+            waitmask.hide();
+
+
+          //Convert records into a two dimensional array for the grid and chart editors
+            if (arr){
+                data = [];
+                if (arr.length>0){
+                    var keys = Object.keys(arr[0]);
+                    data.push(keys);
+
+                    arr.forEach((d)=>{
+                        var record = [];
+                        keys.forEach((key)=>{
+                            record.push(d[key]);
+                        });
+                        data.push(record);
+                    });
+
+                    createGrid(data, true, gridContainer, config);
+                }
+            }
+
+
+          //Update filter config
+            config.filter.code = code;
+            config.filter.hasHeader = input.config.hasHeader;
+            config.filter.sheetName = input.config.sheetName;
+
+
+        }, 300);
+
     };
 
 
