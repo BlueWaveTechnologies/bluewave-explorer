@@ -542,6 +542,22 @@ bluewave.Explorer = function(parent, config) {
         }
 
 
+
+
+      //Run scripts for the filter nodes
+        for (var nodeID in nodes){
+            var node = nodes[nodeID];
+            if (node.type==="filter"){
+                var editor = getNodeEditor(node);
+                if (editor){
+                    editor.update(node); //this will assign data to the node
+                    editor.clear(); //clean up the dom
+                }
+            }
+        }
+
+
+
         var onReady = function(){
             updateButtons();
             me.setView(view);
@@ -904,6 +920,9 @@ bluewave.Explorer = function(parent, config) {
                 }
             },200);
         });
+        drawflow.on('nodeMoved', function(nodeID){
+            me.onChange('nodeMoved');
+        });
 
 
       //Create toolbar
@@ -1214,12 +1233,6 @@ bluewave.Explorer = function(parent, config) {
         i.className = icon;
 
 
-//      //Update buttons
-//        button["save"].enable();
-//        if (id){
-//            button["edit"].enable();
-//            button["delete"].enable();
-//        }
 
         var inputs = 0;
         var outputs = 1;
@@ -1252,13 +1265,9 @@ bluewave.Explorer = function(parent, config) {
 
       //Special case for files
         if (file){
-
-          //Instantiage node editor with the file
             node.file = file;
             node.config.fileName = file.name;
-            var editor = getNodeEditor(node);
-            if (editor) editor.show();
-
+            node.ondblclick();
         }
     };
 
@@ -1268,10 +1277,17 @@ bluewave.Explorer = function(parent, config) {
   //**************************************************************************
     var addEventListeners = function(node){
         node.ondblclick = function(){
+
             var editor = getNodeEditor(node);
             if (editor){
+                editor.clear();
                 editor.show();
+                var delay = editor.getData ? 300 : 50;
+                setTimeout(()=>{
+                    editor.update(node);
+                }, delay);
             }
+
         };
     };
 
@@ -1444,8 +1460,15 @@ bluewave.Explorer = function(parent, config) {
         };
 
 
-      //Update editor
-        editor.update(node);
+      //Special case for editors with getData() method. We want to assign data
+      //to the node after an update.
+        if (editor.getData){
+            var _update = editor.update;
+            editor.update = function(node){
+                _update(node);
+                node.data = editor.getData();
+            };
+        }
 
         return editor;
     };
@@ -1522,20 +1545,24 @@ bluewave.Explorer = function(parent, config) {
                                         createPreview(el, function(canvas){
                                             if (canvas && canvas.toDataURL){
                                                 node.preview = canvas.toDataURL("image/png");
+                                                me.onChange('nodeUpdated');
                                                 createThumbnail(node, canvas);
                                             }
                                             win.close();
+                                            if (editor.clear) editor.clear();
                                             waitmask.hide();
                                         }, this);
                                     },800);
                                 }
                                 else{
                                     win.close();
+                                    if (editor.clear) editor.clear();
                                 }
                             }
                             else{
                                 updateTitle(node, node.config.chartTitle);
                                 win.close();
+                                if (editor.clear) editor.clear();
                             }
                         }
                     };
@@ -1567,9 +1594,6 @@ bluewave.Explorer = function(parent, config) {
             win.editor = editor;
 
             return editor;
-        }
-        else{ //Special case for dbView
-            return win;
         }
     };
 
@@ -1686,7 +1710,6 @@ bluewave.Explorer = function(parent, config) {
             img.className = "noselect";
             img.onload = function() {
                 el.appendChild(this);
-                me.onChange('thumbnailUpdated');
             };
             img.src = base64image;
             img.ondragstart = function(e){
@@ -2107,6 +2130,7 @@ bluewave.Explorer = function(parent, config) {
                     var editor = getNodeEditor(node);
                     if (editor){
                         if (editor.renderChart){
+                            editor.update(node);
                             editor.renderChart(createChartContainer());
                         }
                     }
