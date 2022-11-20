@@ -176,7 +176,7 @@ bluewave.Explorer = function(parent, config) {
     };
 
     var dashboardPanel, editPanel, toggleButton, mask, waitmask; //primary components
-    var id, name, thumbnail; //dashboard attributes
+    var id, name, description, thumbnail; //dashboard attributes
     var menubar, button = {};
     var tooltip, tooltipTimer, lastToolTipEvent; //tooltip
     var drawflow, nodes = {}; //drawflow
@@ -316,8 +316,9 @@ bluewave.Explorer = function(parent, config) {
         var dashboard = {
             id: id,
             name: name,
+            description: description,
             className: me.className,
-            //thumbnail: thumbnail,
+            thumbnail: thumbnail,
             info: {
                 layout: drawflow.export().drawflow.Home.data,
                 nodes: {},
@@ -360,7 +361,7 @@ bluewave.Explorer = function(parent, config) {
         dashboardPanel.clear();
 
       //Reset class variables
-        id = name = thumbnail = null;
+        id = name = description = thumbnail = null;
         nodes = {};
 
       //Clear drawflow
@@ -432,6 +433,7 @@ bluewave.Explorer = function(parent, config) {
       //Update class variables
         id = dashboard.id;
         name = dashboard.name;
+        description = dashboard.description;
         thumbnail = dashboard.thumbnail;
 
 
@@ -544,7 +546,7 @@ bluewave.Explorer = function(parent, config) {
 
 
 
-      //Run scripts for the filter nodes
+      //Run scripts in the filter nodes
         for (var nodeID in nodes){
             var node = nodes[nodeID];
             if (node.type==="filter"){
@@ -585,6 +587,17 @@ bluewave.Explorer = function(parent, config) {
 
                 mask.hide();
                 editPanel.focus();
+
+
+
+              //Clear out any node editors that weren't cleared before
+                for (var nodeID in nodes){
+                    var node = nodes[nodeID];
+                    var editor = getNodeEditor(node);
+                    if (editor) editor.clear();
+                }
+
+
 
             },500); //slight delay for drawflow
         };
@@ -1073,7 +1086,6 @@ bluewave.Explorer = function(parent, config) {
 
             var files = e.dataTransfer.files;
             if (files.length>0){
-                waitmask.show(500);
 
 
               //Generate list of exsiting files in the canvas
@@ -1103,9 +1115,14 @@ bluewave.Explorer = function(parent, config) {
                 }
 
 
-              //Upload files to the server
+              //Return early if there's nothing to add
+                if (arr.length===0) return;
+
+
+              //Add files
                 var uploads = 0;
                 var failures = [];
+                waitmask.show();
                 var upload = function(){
 
                     if (arr.length===0){
@@ -1432,7 +1449,7 @@ bluewave.Explorer = function(parent, config) {
 
                     var chartConfig = editor.getConfig();
                     var node = editor.getNode();
-                    node.config = chartConfig;
+                    node.config = JSON.parse(JSON.stringify(chartConfig));
                     me.onChange('nodeUpdated');
 
                     //TODO: Update thumbnail?
@@ -1535,10 +1552,10 @@ bluewave.Explorer = function(parent, config) {
                             if (!orgConfig) orgConfig = {};
                             if (isDirty(chartConfig, orgConfig)){
                                 me.onChange('nodeUpdated');
-                                node.config = chartConfig;
+                                node.config = JSON.parse(JSON.stringify(chartConfig));
                                 updateTitle(node, node.config.chartTitle);
-                                waitmask.show();
                                 if (editor.getChart){
+                                    waitmask.show();
                                     var el = editor.getChart();
                                     if (el.show) el.show();
                                     setTimeout(function(){
@@ -1549,20 +1566,20 @@ bluewave.Explorer = function(parent, config) {
                                                 createThumbnail(node, canvas);
                                             }
                                             win.close();
-                                            if (editor.clear) editor.clear();
+                                            editor.clear();
                                             waitmask.hide();
                                         }, this);
                                     },800);
                                 }
                                 else{
                                     win.close();
-                                    if (editor.clear) editor.clear();
+                                    editor.clear();
                                 }
                             }
                             else{
                                 updateTitle(node, node.config.chartTitle);
                                 win.close();
-                                if (editor.clear) editor.clear();
+                                editor.clear();
                             }
                         }
                     };
@@ -2132,6 +2149,7 @@ bluewave.Explorer = function(parent, config) {
                         if (editor.renderChart){
                             editor.update(node);
                             editor.renderChart(createChartContainer());
+                            //editor.clear();
                         }
                     }
 
