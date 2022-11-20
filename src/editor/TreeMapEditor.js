@@ -300,9 +300,36 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
 
 
 
+      //Create shape dropdown
+        var shapeDropdown = new javaxt.dhtml.ComboBox(
+            document.createElement("div"),
+            {
+                style: config.style.combobox,
+                readOnly: true
+
+            }
+        );
+        shapeDropdown.add("Circular", "circle");
+        shapeDropdown.add("Rectangular", "square");
+        shapeDropdown.setValue("circle");
+
+
+
         var form = new javaxt.dhtml.Form(body, {
             style: config.style.form,
             items: [
+
+                {
+                    group: "General",
+                    items: [
+
+                        {
+                            name: "shape",
+                            label: "Shape",
+                            type: shapeDropdown
+                        }
+                    ]
+                },
 
                 {
                   group: "Labels",
@@ -351,6 +378,10 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
 
 
 
+      //Set initial value for the shape field
+        var shapeField = form.findField("shape");
+        var shape = chartConfig.shape;
+        shapeField.setValue(shape==="square" ? "square" : "circle");
 
       //Set initial value for group label
         var groupLabelField = form.findField("groupLabel");
@@ -385,6 +416,7 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
             chartConfig.groupLabel = settings.groupLabel;
             chartConfig.keyLabel = settings.keyLabel;
             chartConfig.valueLabel = settings.valueLabel;
+            chartConfig.shape = settings.shape;
 
             createPreview();
         };
