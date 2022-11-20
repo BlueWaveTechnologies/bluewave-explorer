@@ -602,8 +602,13 @@
     color: #008000; /*green*/
 }
 
+.toolbar-button-icon.fas.fa-folder-open {
+    color: #d19f0b; /*yellow*/
+}
+
 .toolbar-button-icon.fas.fa-edit {
-    color: #864a00; /*brown*/
+    color: #8f4f00; /*brown*/
+    color: #0f6391;
 }
 
 .toolbar-button-icon.fas.fa-sync-alt {
