@@ -24,7 +24,9 @@ bluewave.editor.PieEditor = function(parent, config) {
         chart: {
             pieCutout: 0.65,
             piePadding: 0,
-            maximumSlices: 8,
+            pieSort: "value",
+            pieSortDir: "descending",
+            maximumSlices: 0,
             labelOffset: 120,
             showOther: true,
             showTooltip: true
@@ -387,7 +389,29 @@ bluewave.editor.PieEditor = function(parent, config) {
             }
             else{
                 chartConfig[chartConfigRef] = value;
-                createPreview();
+
+                var k = pieInputs.key.getValue();
+                var v = pieInputs.value.getValue();
+
+                if (k && v){
+                    k = (k+"").trim();
+                    v = (v+"").trim();
+                    if (k.length>0 && v.length>0){
+
+                        var sortBy = config.chart.pieSort;
+                        if (sortBy){
+                            pieInputs.sort.setValue(sortBy, true);
+                        }
+
+                        var sortDir = config.chart.pieSortDir;
+                        if (sortDir){
+                            pieInputs.sortDir.setValue(sortDir, true);
+                        }
+
+                        createPreview();
+                    }
+                }
+
             }
         };
     };
@@ -562,8 +586,12 @@ bluewave.editor.PieEditor = function(parent, config) {
         maxSliceOptField.setValue(showOther===true ? true : false);
 
         var numSlices = inputData[0].length;
+        if (pieChart) numSlices = pieChart.getNumSlices();
         createSlider("maximumSlices", form, "", 1, numSlices, 1);
-        var maximumSlices = chartConfig.maximumSlices;
+        var maximumSlices = parseInt(chartConfig.maximumSlices);
+        if (isNaN(maximumSlices) || maximumSlices<1 || maximumSlices>numSlices){
+            maximumSlices = numSlices;
+        }
         form.findField("maximumSlices").setValue(maximumSlices);
 
 
@@ -575,7 +603,13 @@ bluewave.editor.PieEditor = function(parent, config) {
 
             chartConfig.piePadding = (settings.padding*maxPadding)/100;
 
-            chartConfig.maximumSlices = settings.maximumSlices;
+
+            var maximumSlices = parseInt(settings.maximumSlices);
+            if (isNaN(maximumSlices) || maximumSlices<1 || maximumSlices>numSlices){
+                maximumSlices = numSlices;
+            }
+            chartConfig.maximumSlices = maximumSlices;
+
 
             if (settings.labels==="true") {
                 settings.labels = true;
