@@ -266,6 +266,50 @@ bluewave.editor.ScatterEditor = function(parent, config) {
         body.innerHTML = "";
 
 
+
+
+      //Create "Min Value" dropdown
+        var xMinDropdown = new javaxt.dhtml.ComboBox(
+            document.createElement("div"),
+            {
+                style: config.style.combobox,
+                readOnly: false
+
+            }
+        );
+
+        var xKeys = [];
+        inputData.forEach(function (data, i){
+
+            var n = i>0 ? (i+1) : "";
+            let xAxisN = `xAxis${n}`;
+            var xAxis = chartConfig[xAxisN];
+
+            if (xAxis){
+                data.forEach((d)=>{
+                    xKeys.push(d[xAxis]);
+                });
+            }
+        });
+
+        var xType = getType(xKeys);
+        if (xType=="number" || xType=="currency"){
+            var minX = Number.MAX_VALUE;
+            var maxX = 0;
+            xKeys.forEach((key)=>{
+                var n = bluewave.chart.utils.parseFloat(key);
+                minX = Math.min(n, minX);
+                maxX = Math.max(n, maxX);
+            });
+
+            xMinDropdown.add("0", 0);
+            if (minX!=0) xMinDropdown.add(minX+"", minX);
+            xMinDropdown.setValue(0);
+        }
+
+
+
+
         var form = new javaxt.dhtml.Form(body, {
             style: config.style.form,
             items: [
@@ -339,30 +383,35 @@ bluewave.editor.ScatterEditor = function(parent, config) {
                   group: "X-Axis",
                   items: [
 
-                      {
-                          name: "xLabel",
-                          label: "Show Labels",
-                          type: "checkbox",
-                          options: [
-                              {
-                                  label: "",
-                                  value: true
-                              }
+                        {
+                            name: "xLabel",
+                            label: "Show Labels",
+                            type: "checkbox",
+                            options: [
+                                {
+                                    label: "",
+                                    value: true
+                                }
 
-                          ]
-                      },
-                      {
-                          name: "xGrid",
-                          label: "Show Grid Lines",
-                          type: "checkbox",
-                          options: [
-                              {
-                                  label: "",
-                                  value: true
-                              }
+                            ]
+                        },
+                        {
+                            name: "xGrid",
+                            label: "Show Grid Lines",
+                            type: "checkbox",
+                            options: [
+                                {
+                                    label: "",
+                                    value: true
+                                }
 
-                          ]
-                      }
+                            ]
+                        },
+                        {
+                            name: "xMin",
+                            label: "Min Value",
+                            type: xMinDropdown
+                        }
                   ]
                 },
 
@@ -489,6 +538,9 @@ bluewave.editor.ScatterEditor = function(parent, config) {
             chartConfig.pointLabels = settings.pointLabels;
             chartConfig.showRegLine = settings.showRegLine;
 
+
+            var xMin = bluewave.chart.utils.parseFloat(xMinDropdown.getText());
+            if (!isNaN(xMin)) chartConfig.xMin = xMin;
 
             createScatterPreview();
         };
