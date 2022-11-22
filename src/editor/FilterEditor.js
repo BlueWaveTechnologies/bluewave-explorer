@@ -143,7 +143,7 @@ bluewave.editor.FilterEditor = function(parent, config) {
   //**************************************************************************
   //** update
   //**************************************************************************
-    this.update = function(node){
+    this.update = function(node, callback){
         me.clear();
 
 
@@ -181,7 +181,7 @@ bluewave.editor.FilterEditor = function(parent, config) {
             code = defaultCode;
         }
         editor.setValue(code);
-        runScript();
+        runScript(callback);
     };
 
 
@@ -438,7 +438,7 @@ bluewave.editor.FilterEditor = function(parent, config) {
   //**************************************************************************
   //** runScript
   //**************************************************************************
-    var runScript = function(){
+    var runScript = function(callback){
         gridContainer.innerHTML = "";
 
         var mode = combobox.getValue();
@@ -492,6 +492,8 @@ bluewave.editor.FilterEditor = function(parent, config) {
             config.filter.hasHeader = input.config.hasHeader;
             config.filter.sheetName = input.config.sheetName;
 
+
+            if (callback) callback.apply(me, [data, config.filter]);
 
         }, 300);
 
