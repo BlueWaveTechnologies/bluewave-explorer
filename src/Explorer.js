@@ -546,20 +546,19 @@ bluewave.Explorer = function(parent, config) {
 
 
 
-      //Run scripts in the filter nodes
+      //Find filter nodes
+        var filterEditors = [];
         for (var nodeID in nodes){
             var node = nodes[nodeID];
             if (node.type==="filter"){
                 var editor = getNodeEditor(node);
-                if (editor){
-                    editor.update(node); //this will assign data to the node
-                    editor.clear(); //clean up the dom
-                }
+                if (editor) filterEditors.push(editor);
             }
         }
 
 
 
+      //Function to run when all the nodes are ready
         var onReady = function(){
             updateButtons();
             me.setView(view);
@@ -589,21 +588,41 @@ bluewave.Explorer = function(parent, config) {
                 editPanel.focus();
 
 
-
-              //Clear out any node editors that weren't cleared before
-                for (var nodeID in nodes){
-                    var node = nodes[nodeID];
-                    var editor = getNodeEditor(node);
-                    if (editor) editor.clear();
-                }
-
-
-
             },500); //slight delay for drawflow
         };
 
 
-        onReady();
+
+
+      //Run onReady when ready...
+        if (filterEditors.length===0){
+            onReady();
+        }
+        else{
+
+          //Run scripts in the filter nodes
+            waitmask.show();
+            var applyFilter = function(){
+
+                if (filterEditors.length===0){
+                    waitmask.hide();
+                    onReady();
+                    return;
+                }
+
+                var editor = filterEditors.shift();
+                var node = editor.getNode();
+                editor.update(node, function(){
+                    node.data = JSON.parse(JSON.stringify(editor.getData()));
+                    editor.clear(); //clean up the dom
+                    applyFilter();
+                });
+
+            };
+
+            applyFilter();
+
+        }
     };
 
 
@@ -1481,9 +1500,9 @@ bluewave.Explorer = function(parent, config) {
       //to the node after an update.
         if (editor.getData){
             var _update = editor.update;
-            editor.update = function(node){
-                _update(node);
-                node.data = editor.getData();
+            editor.update = function(node, callback){
+                _update(node, callback);
+                node.data = JSON.parse(JSON.stringify(editor.getData()));
             };
         }
 
