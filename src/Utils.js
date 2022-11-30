@@ -718,6 +718,163 @@ bluewave.utils = {
 
 
   //**************************************************************************
+  //** getThemeColors
+  //**************************************************************************
+  /** Returns a JSON object with a list of colors where the key is a color
+   *  name and the corresponing value is a hex color.
+   */
+    getThemeColors: function(){
+        return {
+            blue:   "#6699CC",
+            green:  "#98DFAF",
+            red:    "#FF3C38",
+            orange: "#FF8C42",
+            purple: "#933ed5",
+            grey:   "#bebcc1"
+        };
+    },
+
+
+  //**************************************************************************
+  //** getColorGradients
+  //**************************************************************************
+  /** Returns a JSON object with a list of color gradients where the key is a
+   *  color name and the corresponing value is an array of hex colors. The
+   *  colors in each array are sorted so that the most intense value appears
+   *  first.
+   */
+    getColorGradients: function(){
+
+        var gradients = {};
+        var colors = bluewave.utils.getThemeColors();
+        for (var key in colors) {
+            if (colors.hasOwnProperty(key)){
+                var color = colors[key];
+                //color = chroma(color).darken().hex();
+                gradients[key] = [color, "#f8f8f8"];
+
+                if (key=='blue') gradients.blue = d3.schemeBlues[7].reverse();
+                if (key=='red') gradients.red = d3.schemeReds[7].reverse();
+                if (key=='green') gradients.green = d3.schemeGreens[7].reverse();
+                if (key=='grey') gradients.grey = d3.schemeGreys[7].reverse();
+                if (key=='purple') gradients.purple = d3.schemePurples[7].reverse();
+            }
+        }
+
+        var inferno = [];
+        var plasma = [];
+        for (var i=0; i<=10; i++){
+            var x = i/10;
+            inferno.push(d3.interpolateInferno(x));
+            plasma.push(d3.interpolatePlasma(x));
+        }
+        gradients.inferno = inferno.reverse();
+        gradients.plasma = plasma.reverse();
+
+        gradients.mixed = Object.values(colors);
+        gradients.d3 = d3.schemeCategory10;
+        gradients.tableau = d3.schemeTableau10;
+
+        //console.log(gradients);
+
+        return gradients;
+    },
+
+
+  //**************************************************************************
+  //** createColorField
+  //**************************************************************************
+  /** Returns a combobox with color options
+   */
+    createColorField: function(parent, config){
+
+      //Process inputs
+        if (arguments.length===0){
+            parent = document.createElement("div");
+        }
+        else if (arguments.length===1){
+            if (!javaxt.dhtml.utils.isElement(parent)){
+                config = parent;
+                parent = document.createElement("div");
+            }
+        }
+
+
+      //Set config
+        if (!config) config = {};
+        var defaultConfig = {
+            style: javaxt.dhtml.style.default
+        };
+        javaxt.dhtml.utils.merge(config, defaultConfig);
+
+
+
+      //Create input
+        var colorField = new javaxt.dhtml.ComboBox(parent, {
+            style: config.style.combobox,
+            readOnly: true,
+            addNewOption: false,
+            addNewOptionText: "Add New...",
+            showMenuOnFocus: true
+        });
+
+
+      //Add color options
+        var defaultValue;
+        if (!config.colors) config.colors = bluewave.utils.getColorGradients();
+        for (var key in config.colors) {
+            if (config.colors.hasOwnProperty(key)){
+
+                var colors = config.colors[key];
+                var colorRange = chroma.scale(colors);
+
+                var menuItem = document.createElement("div");
+                menuItem.className = "form-input-menu-color"
+                var background = "linear-gradient(to right";
+                for (var i=0; i<colors.length; i++){
+                    var p = javaxt.dhtml.utils.round((i/(colors.length-1)), 2);
+                    var c = colorRange(p).css();
+                    background+= ", " + c + " " + (p*100) + "%";
+                }
+                background+= ")";
+                menuItem.style.background = background;
+
+                colorField.add(menuItem, JSON.stringify(colors));
+                if (!defaultValue) defaultValue = key;
+            }
+        }
+
+
+      //Update the native setValue() method of the combobox
+        var _setValue = colorField.setValue;
+        colorField.setValue = function(color){
+            if (typeof color === 'string' || color instanceof String){
+                _setValue(color);
+            }
+            else{
+                _setValue(JSON.stringify(color));
+            }
+        };
+
+
+//        colorField.onMenuHover = function(label, value, el){
+//            for (var key in config.colors) {
+//                if (config.colors.hasOwnProperty(key)){
+//                    var colors = config.colors[key];
+//                    if (JSON.stringify(colors)===value){
+//                        console.log(key);
+//                        break;
+//                    }
+//                }
+//            }
+//        };
+
+
+        return colorField;
+    },
+
+
+  //**************************************************************************
   //** createColorPicker
   //**************************************************************************
   /** Returns a panel used to select a color from the list of standard colors
