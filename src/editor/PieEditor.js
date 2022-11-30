@@ -15,12 +15,7 @@ bluewave.editor.PieEditor = function(parent, config) {
         panel: {
 
         },
-        colors: {
-            blue: ["#6699cc","#f8f8f8"],
-            orange: ["#FF8C42","#f8f8f8"],
-            purple: ["#933ed5","#f8f8f8"],
-            mixed: bluewave.utils.getColorPalette()
-        },
+        colors: bluewave.utils.getColorGradients(),
         chart: {
             pieCutout: 0.65,
             piePadding: 0,
@@ -450,12 +445,10 @@ bluewave.editor.PieEditor = function(parent, config) {
         body.innerHTML = "";
 
 
-        var colorField = new javaxt.dhtml.ComboBox(
-            document.createElement("div"),
-            {
-                style: config.style.combobox
-            }
-        );
+        var colorField = bluewave.utils.createColorField({
+            colors: config.colors,
+            style: config.style
+        });
 
 
 
@@ -542,13 +535,7 @@ bluewave.editor.PieEditor = function(parent, config) {
         });
 
 
-      //Add color options
-        for (var key in config.colors) {
-            if (config.colors.hasOwnProperty(key)){
-                colorField.add(key, key);
-            }
-        }
-        //colorField.setValue(chartConfig.colors+"");
+        colorField.setValue(JSON.stringify(chartConfig.colors));
 
 
       //Update cutout field (add slider) and set initial value
@@ -630,9 +617,8 @@ bluewave.editor.PieEditor = function(parent, config) {
             else if (settings.showOther==="false") settings.showOther = false;
             chartConfig.showOther = settings.showOther;
 
-            chartConfig.colors = config.colors[settings.color];
-            if (settings.color==="mixed") chartConfig.colorScaling = "ordinal";
-            else chartConfig.colorScaling = "linear";
+
+            chartConfig.colors = JSON.parse(settings.color);
 
             createPreview();
         };
