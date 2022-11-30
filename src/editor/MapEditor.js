@@ -16,10 +16,7 @@ if(!bluewave.editor) bluewave.editor={};
         panel: {
 
         },
-        colors: {
-            red: d3.schemeReds[7],
-            blue: d3.schemeBlues[7]
-        },
+        colors: bluewave.utils.getColorGradients(),
         chart: {
             style: {
                 backgroundColor: "#fff",
@@ -834,40 +831,15 @@ if(!bluewave.editor) bluewave.editor={};
   /** Returns a pulldown with color options
    */
     var createColorField = function(){
-        var colorField = new javaxt.dhtml.ComboBox(
-            document.createElement("div"),
-            {
-                style: config.style.combobox
-            }
-        );
+
+        var colorField = bluewave.utils.createColorField({
+            colors: config.colors,
+            style: config.style
+        });
 
 
-      //Add color options
-        var defaultValue;
-        for (var key in config.colors) {
-            if (config.colors.hasOwnProperty(key)){
-                colorField.add(key, JSON.stringify(config.colors[key]));
-                if (!defaultValue) defaultValue = key;
-            }
-        }
-
-
-      //Set initial value for the color
-        if (chartConfig.fillColors){
-            var color = chartConfig.fillColors;
-            colorField.getOptions().every(function(d){
-                var key = d.text;
-                var val = d.value;
-                if (color==key || JSON.stringify(color)==val){
-                    colorField.setValue(key);
-                    return false;
-                }
-                return true;
-            });
-        }
-        else{
-            colorField.setValue(defaultValue);
-        }
+        var fillColors = getFillColors();
+        colorField.setValue(JSON.stringify(fillColors));
 
         return colorField;
     };
@@ -952,18 +924,8 @@ if(!bluewave.editor) bluewave.editor={};
 
       //Get fill colors
         var fillColors;
-        if(chartConfig.mapType === "Area"){
-            fillColors = chartConfig.fillColors;
-            if (!fillColors){
-                if (config.colors){
-                    for (var key in config.colors) {
-                        if (config.colors.hasOwnProperty(key)){
-                            fillColors = config.colors[key];
-                            break;
-                        }
-                    }
-                }
-            }
+        if (chartConfig.mapType === "Area"){
+            fillColors = getFillColors();
         }
 
 
@@ -1662,6 +1624,31 @@ if(!bluewave.editor) bluewave.editor={};
 
 
   //**************************************************************************
+  //** getFillColors
+  //**************************************************************************
+  /** Returns fill colors for polygons from the chartConfig. If no fill color
+   *  is defined, returns an entry from this editor color config.
+   */
+    var getFillColors = function(){
+        var fillColors = chartConfig.fillColors;
+        if (!fillColors){
+            if (config.colors){
+                fillColors = config.colors["red"];
+                if (!fillColors){
+                    for (var key in config.colors) {
+                        if (config.colors.hasOwnProperty(key)){
+                            fillColors = config.colors[key];
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        return fillColors;
+    };
+
+
+  //**************************************************************************
   //** getDefaultFillColor
   //**************************************************************************
     var getDefaultFillColor = function(){
@@ -1676,7 +1663,8 @@ if(!bluewave.editor) bluewave.editor={};
   //**************************************************************************
   /** Used to generate fill colors for a given dataset using natural breaks.
    *  @param data A JSON array
-   *  @param fillColors An array of strings representing fill colors
+   *  @param fillColors An array of strings representing fill colors as hexes.
+   *  Assumes colors are sorted so that the most intense value appears first.
    */
     var Fill = function(data, fillColors){
         var me = this;
@@ -1685,13 +1673,21 @@ if(!bluewave.editor) bluewave.editor={};
         var values = {};
         data.forEach(function(d){
             var key = d[chartConfig.mapLocation];
-            var value = parseFloat(d[chartConfig.mapValue]);
+            var value = bluewave.chart.utils.parseFloat(d[chartConfig.mapValue]);
             if (!isNaN(value)) values[key] = value;
         });
 
 
+        var numClasses = 7;
+
+
       //Get natural breaks
-        var breaks = getNaturalBreaks(Object.values(values), fillColors.length);
+        var breaks = getNaturalBreaks(Object.values(values), numClasses);
+
+
+      //Get fill colors
+        var colorRange = chroma.scale(fillColors);
+        var colors = colorRange.colors(breaks.length-1).reverse();
 
 
         this.getColor = function(key, defaultColor){
@@ -1700,7 +1696,7 @@ if(!bluewave.editor) bluewave.editor={};
                 return defaultColor;
             }
             else{
-                return getColor(value, fillColors, breaks);
+                return getColor(value, colors, breaks);
             }
         };
 
