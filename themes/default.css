@@ -475,6 +475,28 @@
 }
 
 
+/**************************************************************************/
+/** Color Menu Pulldown
+/**************************************************************************/
+/** The following classes are used to tweak the javaxt.dhtml.ComboBox for
+ *  color pulldowns
+ */
+
+.form-input-menu-color {
+    height: 22px;
+    border-radius: 2px;
+    position: relative;
+}
+
+.form-input-menu-item .form-input-menu-color {
+    position: relative;
+    top: 50%;
+    -webkit-transform: translateY(-50%);
+    -ms-transform: translateY(-50%);
+    transform: translateY(-50%);
+}
+
+
 
 /**************************************************************************/
 /** Chart Editor
