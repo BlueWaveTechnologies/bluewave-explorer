@@ -95,12 +95,16 @@
 window.onload = function() {
 
 
-  //Ensure that the path ends with a "/" character. Redirect browser as needed
+  //If this file is served from a webserver, ensure that the path ends with
+  //a "/" character. Redirect browser as needed
     var path = window.location.pathname;
     var idx = path.lastIndexOf("/");
     if (idx!==path.length-1){
-        window.location.replace(window.location.origin + path + "/");
-        return;
+        idx = path.substring(idx).lastIndexOf(".");
+        if (idx===-1){
+            window.location.replace(window.location.origin + path + "/");
+            return;
+        }
     }
 
 
