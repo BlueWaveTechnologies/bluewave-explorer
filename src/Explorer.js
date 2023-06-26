@@ -659,10 +659,6 @@ bluewave.Explorer = function(parent, config) {
         if (me.isReadOnly()) return;
 
 
-      //Enable database node
-        if (button.database) button.database.enable();
-
-
       //Generate a unique list of visible node types
         var visibleNodes = {};
         for (var key in nodes) {
@@ -679,7 +675,8 @@ bluewave.Explorer = function(parent, config) {
             if (!menuButton) return;
 
             var inputNodes = n.inputNodes;
-            if (inputNodes){
+            if (!inputNodes) inputNodes = [];
+            if (inputNodes.length>0){
                 inputNodes.every(function(t){
 
                     var hasValidNode = false;
