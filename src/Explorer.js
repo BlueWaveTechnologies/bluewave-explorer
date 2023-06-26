@@ -15,19 +15,6 @@ bluewave.Explorer = function(parent, config) {
     var defaultConfig = {
 
 
-
-        toolbar: {
-            nodes: [
-                "sankeyChart",
-                "pieChart", "barChart", "lineChart",
-                "histogramChart", "scatterChart",
-                "mapChart", "treeMapChart", "calendarChart",
-                "filter"
-            ]
-        },
-
-
-
       /** Define supported nodes and editors
        */
         nodes: [
@@ -170,16 +157,34 @@ bluewave.Explorer = function(parent, config) {
             }
         ],
 
+
+      /** Define which nodes will appear in the toolbar
+       */
+        toolbar: {
+            nodes: [
+                "sankeyChart",
+                "pieChart", "barChart", "lineChart",
+                "histogramChart", "scatterChart",
+                "mapChart", "treeMapChart", "calendarChart",
+                "filter"
+            ]
+        },
+
+
+      /** Define list of supported file types. Used when dragging/dropping
+       *  data files onto the canvas.
+       */
         supportedFileTypes: [
             "csv", "tab", "tsv", "xls", "xlsx", "pdf"
         ]
     };
 
-    var dashboardPanel, editPanel, toggleButton, mask, waitmask; //primary components
+
     var id, name, description, thumbnail; //dashboard attributes
     var menubar, button = {};
     var tooltip, tooltipTimer, lastToolTipEvent; //tooltip
     var drawflow, nodes = {}; //drawflow
+    var waitmask;
     var windows = [];
     var zoom = 0;
 
@@ -195,7 +200,7 @@ bluewave.Explorer = function(parent, config) {
 
 
       //Return early if there's no parent. But only do this AFTER the config
-      //is set so the caller can call getCOnfig() and get the defaultConfig
+      //is set so the caller can call getConfig() and get the defaultConfig
         if (!parent) return;
 
 
@@ -210,41 +215,12 @@ bluewave.Explorer = function(parent, config) {
 
 
       //Create main panel
-        var div = document.createElement("div");
+        var div = createElement("div", parent, {
+            height: "100%",
+            position: "relative"
+        });
         div.setAttribute("desc", me.className);
-        div.style.height = "100%";
-        div.style.position = "relative";
-        //div.style.overflow = "hidden";
-
-
-      //Add toggle button
-        createToggleButton(div);
-        toggleButton.hide();
-
-
-      //Add add mask
-        createMask(div);
-
-
-      //Create inner div for overflow purposes
-        var innerDiv = document.createElement("div");
-        innerDiv.style.width = "100%";
-        innerDiv.style.height = "100%";
-        innerDiv.style.position = "absolute";
-        div.appendChild(innerDiv);
-
-
-      //Create dashboard panel
-        dashboardPanel = createDashboard(innerDiv);
-        dashboardPanel.setAttribute("desc", "dashboardPanel");
-        dashboardPanel.hide();
-
-
-      //Create editor
-        editPanel = document.createElement("div");
-        editPanel.setAttribute("desc", "editPanel");
-        editPanel.style.height = "100%";
-        editPanel.onwheel = function(e){
+        div.onwheel = function(e){
             e.preventDefault();
             if (drawflow){
                 if (e.deltaY>0){
@@ -255,17 +231,34 @@ bluewave.Explorer = function(parent, config) {
                 }
             }
         };
-        editPanel.tabIndex = -1;
-        createEditPanel(editPanel);
-        addShowHide(editPanel);
-        innerDiv.appendChild(editPanel);
+        div.tabIndex = -1;
+
+
+      //Create drawflow
+        createDrawFlow(div);
+
+
+      //Create tooltip
+        tooltip = new javaxt.dhtml.Callout(document.body,{
+            style: {
+                panel: "tooltip-panel",
+                arrow: "tooltip-arrow"
+            }
+        });
+        var _hideToolTip = tooltip.hide;
+        tooltip.hide = function(){
+            if (tooltipTimer) clearTimeout(tooltipTimer);
+            _hideToolTip();
+        };
 
 
 
-        parent.appendChild(div);
+        addShowHide(div);
+
+
+
         me.el = div;
         addShowHide(me);
-        addResizeListener(div, updateLayout);
     };
 
 
@@ -305,11 +298,51 @@ bluewave.Explorer = function(parent, config) {
 
 
   //**************************************************************************
+  //** setName
+  //**************************************************************************
+  /** Used to set a name for the current dashboard
+   */
+    this.setName = function(str){
+        name = str;
+    };
+
+
+  //**************************************************************************
+  //** getName
+  //**************************************************************************
+  /** Returns the name of the current dashboard
+   */
+    this.getName = function(){
+        return name;
+    };
+
+
+  //**************************************************************************
+  //** setID
+  //**************************************************************************
+  /** Used to set an ID for the current dashboard
+   */
+    this.setID = function(i){
+        id = i;
+    };
+
+
+  //**************************************************************************
+  //** getID
+  //**************************************************************************
+  /** Returns the id of the current dashboard
+   */
+    this.getID = function(){
+        return id;
+    };
+
+
+  //**************************************************************************
   //** getDashboard
   //**************************************************************************
   /** Returns all the information required to reconstruct the current view
    */
-    this.getDashboard = function(){
+    this.getDashboard = function(noInfo){
 
 
       //Create dashboard object
@@ -318,12 +351,15 @@ bluewave.Explorer = function(parent, config) {
             name: name,
             description: description,
             className: me.className,
-            thumbnail: thumbnail,
-            info: {
-                layout: drawflow.export().drawflow.Home.data,
-                nodes: {},
-                zoom: zoom
-            }
+            thumbnail: thumbnail
+        };
+
+        if (noInfo===true) return;
+
+        dashboard.info = {
+            layout: drawflow.export().drawflow.Home.data,
+            nodes: {},
+            zoom: zoom
         };
 
 
@@ -353,12 +389,21 @@ bluewave.Explorer = function(parent, config) {
 
 
   //**************************************************************************
+  //** getNodes
+  //**************************************************************************
+  /** Returns a JSON object representing all the nodes in the graph. Use with
+   *  caution! Modifying the nodes can lead to unexpected results. Consider
+   *  using the getDashboard() to get a shallow copy of the nodes.
+   */
+    this.getNodes = function(){
+        return nodes;
+    };
+
+
+  //**************************************************************************
   //** clear
   //**************************************************************************
     this.clear = function(){
-
-      //Clear dashboard panel
-        dashboardPanel.clear();
 
       //Reset class variables
         id = name = description = thumbnail = null;
@@ -374,10 +419,6 @@ bluewave.Explorer = function(parent, config) {
             }
         }
 
-      //Reset toggleButton
-        toggleButton.reset();
-
-
       //Hide any popup dialogs
         for (var i in windows){
             windows[i].hide();
@@ -387,47 +428,23 @@ bluewave.Explorer = function(parent, config) {
     };
 
 
-
-
   //**************************************************************************
   //** update
   //**************************************************************************
   /** Used to render a dashboard
    *  @param dashboard JSON object with dashboard info (see getDashboard)
    *  @param readOnly If true, prevent user from editing
-   *  @param view Preferred view ("Edit", "Preview", or "Dashboard")
    */
-    this.update = function(dashboard, readOnly, view){
+    this.update = function(dashboard, readOnly, callback){
 
 
       //Process args
         if (!dashboard) dashboard = {};
-        if (!(readOnly===true || readOnly===false)) readOnly = false;
-        if (!(view==="Edit" || view==="Preview" || view==="Dashboard")) view="Edit";
-
-
-
-      //Show mask
-        mask.show();
 
 
       //Reset panels and class variables
         me.clear();
 
-
-      //Ensure that the chartEditor is visible (albeit hidden by the mask).
-      //Otherwise, the thumbnail previews might not generate correctly
-        toggleButton.setValue("Edit");
-
-
-      //Show/hide the toggleButton as needed
-        if (view==="Dashboard"){
-            toggleButton.hide();
-        }
-        else{
-            toggleButton.show();
-            mask.hide();
-        }
 
 
       //Update class variables
@@ -446,7 +463,7 @@ bluewave.Explorer = function(parent, config) {
 
 
       //Set mouse focus
-        editPanel.focus();
+        me.el.focus();
 
 
       //Return early if the dashboard is missing config info
@@ -473,7 +490,7 @@ bluewave.Explorer = function(parent, config) {
 
               //Get node (dom object)
                 var drawflowNode = drawflow.getNodeFromId(nodeID);
-                var temp = document.createElement("div");
+                var temp = createElement("div");
                 temp.innerHTML = drawflowNode.html;
                 var node = document.getElementById(temp.childNodes[0].id);
 
@@ -561,32 +578,30 @@ bluewave.Explorer = function(parent, config) {
       //Function to run when all the nodes are ready
         var onReady = function(){
             updateButtons();
-            me.setView(view);
             setTimeout(function(){
-                if (me.getView()!=="Dashboard"){
 
-                  //Update connections
-                    for (var i=0; i<connectionNodes.length; i++){
-                        var inputID = connectionNodes[i];
-                        drawflow.updateConnectionNodes("node-"+inputID);
-                    }
-
-                  //Update thumbnails
-                    for (var i=0; i<thumbnails.length; i++){
-                        (function (t) {
-                            var el = t.node.childNodes[1];
-                            onRender(el, function(){
-                                createThumbnail(t.node, t.thumbnail);
-                            });
-                        })(thumbnails[i]);
-                    }
-
-                    setZoom(dashboard.info.zoom);
+              //Update connections
+                for (var i=0; i<connectionNodes.length; i++){
+                    var inputID = connectionNodes[i];
+                    drawflow.updateConnectionNodes("node-"+inputID);
                 }
 
-                mask.hide();
-                editPanel.focus();
+              //Update thumbnails
+                for (var i=0; i<thumbnails.length; i++){
+                    (function (t) {
+                        var el = t.node.childNodes[1];
+                        onRender(el, function(){
+                            createThumbnail(t.node, t.thumbnail);
+                        });
+                    })(thumbnails[i]);
+                }
 
+                setZoom(dashboard.info.zoom);
+
+
+                me.el.focus();
+
+                if (callback) callback.apply(me, []);
 
             },500); //slight delay for drawflow
         };
@@ -699,54 +714,6 @@ bluewave.Explorer = function(parent, config) {
 
 
   //**************************************************************************
-  //** setView
-  //**************************************************************************
-  /** */
-    this.setView = function(name){
-        if (!name) name = "Edit";
-        if (name==="Edit"){
-
-            if (me.getView()==="Dashboard"){
-                var dashboard = me.getDashboard();
-                me.update(dashboard, false, "Edit");
-            }
-            else{
-                toggleButton.setValue("Edit");
-                toggleButton.show();
-            }
-        }
-        else if (name==="Preview"){
-            toggleButton.show();
-            toggleButton.setValue("Preview");
-        }
-        else if (name==="Dashboard"){
-            toggleButton.show();
-
-
-            if (getLayoutNode()){
-                toggleButton.hide();
-                toggleButton.setValue("Preview");
-            }
-            else{
-                toggleButton.setValue("Edit");
-            }
-        }
-    };
-
-
-  //**************************************************************************
-  //** getView
-  //**************************************************************************
-    this.getView = function(){
-        var name = toggleButton.getValue();
-        if (name==="Preview"){
-            if (!toggleButton.isVisible()) name = "Dashboard";
-        }
-        return name;
-    };
-
-
-  //**************************************************************************
   //** setReadOnly
   //**************************************************************************
     this.setReadOnly = function(readOnly){
@@ -765,26 +732,30 @@ bluewave.Explorer = function(parent, config) {
   //**************************************************************************
   //** isReadOnly
   //**************************************************************************
+  /** Returns true if the view is read-only
+   */
     this.isReadOnly = function(){
         return (drawflow.editor_mode==="view");
     };
 
 
   //**************************************************************************
-  //** getLayoutNode
+  //** getToolbar
   //**************************************************************************
-  /** Returns the first layout node
+  /** Returns the DOM element containing all the buttons
    */
-    var getLayoutNode = function(){
-        for (var key in nodes) {
-            if (nodes.hasOwnProperty(key)){
-                var node = nodes[key];
-                if (node.type==="layout"){
-                    return node;
-                }
-            }
-        }
-        return null;
+    this.getToolbar = function(){
+        return menubar;
+    };
+
+
+  //**************************************************************************
+  //** getButtons
+  //**************************************************************************
+  /** Returns a JSON object with all the buttons in the toolbar
+   */
+    this.getButtons = function(){
+        return button;
     };
 
 
@@ -808,40 +779,13 @@ bluewave.Explorer = function(parent, config) {
 
 
   //**************************************************************************
-  //** createEditPanel
-  //**************************************************************************
-    var createEditPanel = function(parent){
-
-      //Create drawflow
-        createDrawFlow(parent);
-
-
-      //Create tooltip
-        tooltip = new javaxt.dhtml.Callout(document.body,{
-            style: {
-                panel: "tooltip-panel",
-                arrow: "tooltip-arrow"
-            }
-        });
-        var _hideToolTip = tooltip.hide;
-        tooltip.hide = function(){
-            if (tooltipTimer) clearTimeout(tooltipTimer);
-            _hideToolTip();
-        };
-
-    };
-
-
-  //**************************************************************************
   //** createDrawFlow
   //**************************************************************************
     var createDrawFlow = function(parent){
 
-        var div = document.createElement("div");
-        div.className = "drawflow";
+        var div = createElement("div", parent, "drawflow");
         div.addEventListener('dragover', onDragOver, false);
         div.addEventListener('drop', onDrop, false);
-        parent.appendChild(div);
 
 
         drawflow = new Drawflow(div);
@@ -903,7 +847,6 @@ bluewave.Explorer = function(parent, config) {
             removeInputs(nodes, nodeID);
             var nodeType = nodes[nodeID+""].type;
             delete nodes[nodeID+""];
-            if (nodeType==="layout" && !getLayoutNode()) toggleButton.hide();
             updateButtons();
 
             me.onChange('nodeRemoved');
@@ -925,9 +868,7 @@ bluewave.Explorer = function(parent, config) {
                         var deleteDiv = parentNode.getElementsByClassName("drawflow-delete")[0];
                         if (deleteDiv){
                             parentNode.removeChild(deleteDiv);
-                            deleteDiv = document.createElement("div");
-                            deleteDiv.className = "drawflow-delete2";
-                            parentNode.appendChild(deleteDiv);
+                            deleteDiv = createElement("div", parentNode, "drawflow-delete2");
                             deleteDiv.innerHTML = "&#x2715";
                             deleteDiv.nodeID = parseInt(key);
                             deleteDiv.onclick = function(){
@@ -958,9 +899,7 @@ bluewave.Explorer = function(parent, config) {
 
 
       //Create toolbar
-        menubar = document.createElement("div");
-        menubar.className = "drawflow-toolbar";
-        div.appendChild(menubar);
+        menubar = createElement("div", div, "drawflow-toolbar");
 
 
 
@@ -1264,12 +1203,6 @@ bluewave.Explorer = function(parent, config) {
 
 
 
-      //Create icon
-        var i = document.createElement("i");
-        i.className = icon;
-
-
-
         var inputs = 0;
         var outputs = 1;
 
@@ -1287,7 +1220,7 @@ bluewave.Explorer = function(parent, config) {
             name: title,
             type: nodeType,
             icon: icon,
-            content: i,
+            content: createElement("i", icon),
             position: [pos_x, pos_y],
             inputs: inputs,
             outputs: outputs
@@ -1332,14 +1265,14 @@ bluewave.Explorer = function(parent, config) {
   //** createNode
   //**************************************************************************
     var createNode = function(node){
-        var div = document.createElement("div");
+
+        var div = createElement("div");
         div.id = "_"+new Date().getTime();
-        var title = document.createElement("div");
-        title.className = "drawflow-node-title";
+
+        var title = createElement("div", div, "drawflow-node-title");
         title.innerHTML = "<i class=\"" + node.icon + "\"></i><span>" + node.name + "</span>";
-        div.appendChild(title);
-        var body = document.createElement("div");
-        body.className = "drawflow-node-body";
+
+        var body = createElement("div", div, "drawflow-node-body");
         var content = node.content;
         if (content){
             if (typeof content === "string"){
@@ -1349,7 +1282,6 @@ bluewave.Explorer = function(parent, config) {
                 body.appendChild(content);
             }
         }
-        div.appendChild(body);
 
 
         var nodeID = drawflow.addNode(
@@ -1552,11 +1484,8 @@ bluewave.Explorer = function(parent, config) {
               //want to delay closing the window until after the thumbnail
               //is created
                 headerButtons: function(buttonDiv){
-                    var btn = document.createElement('div');
-                    setStyle(btn, style.button);
-                    var icon = document.createElement('div');
-                    setStyle(icon, style.closeIcon);
-                    btn.appendChild(icon);
+                    var btn = createElement('div', buttonDiv, style.button);
+                    createElement('div', btn, style.closeIcon);
                     btn.onclick = function(){
                         if (editorConfig.beforeClose){
                             editorConfig.beforeClose.apply(me, [win]);
@@ -1602,7 +1531,7 @@ bluewave.Explorer = function(parent, config) {
                             }
                         }
                     };
-                    buttonDiv.appendChild(btn);
+
                 }
             }
         });
@@ -1700,10 +1629,12 @@ bluewave.Explorer = function(parent, config) {
         var width = rect.width;
         var height = rect.height;
 
-        var div = document.createElement('div');
-        div.style.width = "100%";
-        div.style.height = "100%";
-        el.appendChild(div);
+        var div = createElement('div', el, {
+            width: "100%",
+            height: "100%"
+        });
+
+
         var rect = javaxt.dhtml.utils.getRect(div);
         el.innerHTML = "";
         var padding = width-rect.width;
@@ -1742,8 +1673,7 @@ bluewave.Explorer = function(parent, config) {
             resizeCanvas(canvas, width, height, true);
             var base64image = canvas.toDataURL("image/png");
 
-            var img = document.createElement('img');
-            img.className = "noselect";
+            var img = createElement("img", "noselect");
             img.onload = function() {
                 el.appendChild(this);
             };
@@ -1756,11 +1686,11 @@ bluewave.Explorer = function(parent, config) {
 
 
         if (typeof obj === "string"){ //base64 encoded image
-            var img = document.createElement('img');
+            var img = createElement('img');
             img.onload = function() {
                 var img = this;
 
-                var canvas = document.createElement('canvas');
+                var canvas = createElement('canvas');
                 canvas.width = img.width;
                 canvas.height = img.height;
                 var ctx = canvas.getContext("2d");
@@ -1855,394 +1785,6 @@ bluewave.Explorer = function(parent, config) {
     };
 
 
-
-
-  //**************************************************************************
-  //** checkConnection
-  //**************************************************************************
-    var checkConnection = function(layoutNode, node){
-        var connected = false;
-        for (var inputID in layoutNode.inputs){
-            var tempNode = nodes[inputID];
-            if (tempNode === node){
-                connected = true;
-            }
-        }
-        return connected;
-    };
-
-
-  //**************************************************************************
-  //** updateLayout
-  //**************************************************************************
-  /** Used to update the size and position of all the dashboard items in the
-   *  layout.
-   */
-    var updateLayout = function(){
-        if (me.getView()!=="Edit"){
-            dashboardPanel.resize();
-            var dashboardItems = dashboardPanel.getDashboardItems();
-            for (var i=0; i<dashboardItems.length; i++){
-                var dashboardItem = dashboardItems[i];
-                updateSVG(dashboardItem);
-            }
-        }
-    };
-
-
-  //**************************************************************************
-  //** updateSVG
-  //**************************************************************************
-  /** Used to update the size and position of an individual dashboard items
-   *  in a layout.
-   */
-    var updateSVG = function(dashboardItem){
-        var svgs = dashboardItem.getElementsByTagName("svg");
-        if (svgs.length>0){
-            var svg = svgs[0];
-            var chartContainer = svg.parentNode;
-            var rect = javaxt.dhtml.utils.getRect(chartContainer.parentNode);
-
-
-          //Update dimensions of the svg
-            d3.select(svg)
-            .attr("width",rect.width)
-            .attr("height",rect.height);
-
-
-          //Get attributes of the second "g" element in the svg. Assumes that
-          //the first "g" element is reserved exclusively for us to manipulate
-          //in this class. All chart types should have a outer "g" like this.
-            var g = svg.getElementsByTagName("g")[0]; //reserved for explorer
-            var g2 = g.getElementsByTagName("g")[0]; //used by individual charts
-            var box = g2.getBBox();
-            var width = box.width;
-            var height = box.height;
-            var scaleX = 1;
-            var scaleY = 1;
-            var translateX = 0;
-            var translateY = 0;
-            var transformList = g2.transform.baseVal;
-            for (var i=0; i<transformList.numberOfItems; i++){
-                var transform = transformList.getItem(i);
-                var m = transform.matrix;
-                switch (transform.type){
-                  case 2:
-                    translateX = m.e;
-                    translateY = m.f;
-                    break;
-                  case 3:
-                    scaleX = m.a;
-                    scaleY = m.d;
-                    break;
-                }
-            }
-
-
-
-          //Compute scale
-            var scale;
-            var scaledWidth = (width)*scaleX;
-            var scaledHeight = (height)*scaleY;
-            if (width>=height){
-                scale = rect.width/scaledWidth;
-                var h = scaledHeight*scale;
-                if (h>rect.height){
-                    scale = rect.height/scaledHeight;
-                }
-            }
-            else{
-                scale = rect.height/scaledHeight;
-                var w = scaledWidth*scale;
-                if (w>rect.width){
-                    scale = rect.width/scaledWidth;
-                }
-            }
-
-
-
-          //Compute x/y offset
-            var x = 0;
-            var y = 0;
-            if (translateX===0){ //center the chart
-                x = (rect.width/2)-((scaledWidth*scale)/2);
-            }
-            else{
-                //TODO: center chart using translateX
-            }
-
-            if (translateY===0){ //center the chart
-                y = (rect.height/2)-((scaledHeight*scale)/2);
-            }
-            else{
-                //TODO: center chart using translateY
-            }
-
-
-          //Apply transform to the first g
-            d3.select(g).attr("transform",
-                "translate(" + x + "," + y + ") " +
-                "scale(" + scale + ")"
-            );
-
-        }
-    };
-
-
-  //**************************************************************************
-  //** createDashboard
-  //**************************************************************************
-  /** Creates a panel used to render dashboard items
-   */
-    var createDashboard = function(parent){
-        var outerDiv = document.createElement("div");
-        outerDiv.style.height = "100%";
-        outerDiv.style.textAlign = "center";
-        parent.appendChild(outerDiv);
-        addShowHide(outerDiv);
-
-
-        var paddedDiv = document.createElement("div");
-        paddedDiv.style.height = "100%";
-        paddedDiv.style.position = "relative";
-        paddedDiv.style.padding = "10px";
-        paddedDiv.style.boxSizing = "border-box";
-        paddedDiv.style.display = "inline-block";
-        outerDiv.appendChild(paddedDiv);
-
-        var innerDiv = document.createElement("div");
-        innerDiv.style.position = "relative";
-        innerDiv.style.width = "100%";
-        innerDiv.style.height = "100%";
-        paddedDiv.appendChild(innerDiv);
-
-
-
-        var childNodes = [];
-        var maxWidth = 0;
-        var maxHeight = 0;
-        outerDiv.add = function(el){
-            innerDiv.appendChild(el);
-            childNodes.push(el);
-            maxWidth = Math.max(maxWidth, parseFloat(el.style.width)+parseFloat(el.style.left))/100;
-            maxHeight = Math.max(maxHeight, parseFloat(el.style.height)+parseFloat(el.style.top))/100;
-        };
-        outerDiv.clear = function(){
-            innerDiv.innerHTML = "";
-            childNodes = [];
-            maxWidth = 0;
-            maxHeight = 0;
-        };
-        outerDiv.getDashboardItems = function(){
-            return childNodes;
-        };
-        outerDiv.resize = function(){
-
-            var width = outerDiv.offsetWidth;
-            var height = outerDiv.offsetHeight;
-
-            if (maxWidth===0 || maxHeight===0) return;
-
-            var w, h;
-            if (maxWidth>=maxHeight){
-                w = width;
-                h = w;
-
-                if (height<h*maxHeight){
-                    var d = height/(h*maxHeight);
-                    w = w*d;
-                    h = w;
-                }
-            }
-            else{
-                h = height;
-                w = h;
-
-                if (width<w*maxWidth){
-                    var d = width/(w*maxWidth);
-                    h = h*d;
-                    w = h;
-                }
-            }
-
-            paddedDiv.style.width = w + "px";
-            paddedDiv.style.height = h + "px";
-        };
-
-        return outerDiv;
-    };
-
-
-  //**************************************************************************
-  //** updateDashboard
-  //**************************************************************************
-  /** Used to render/update a complete dashboard (collection of charts in a
-   *  layout)
-   */
-    var updateDashboard = function(){
-
-      //Find layout node
-        var layoutNode = getLayoutNode();
-        if (!layoutNode) return;
-
-
-      //TODO: Check if layout is dirty
-        var isDirty = true;
-        if (!isDirty) return;
-
-
-      //Clear and resize the dashboardPanel
-        dashboardPanel.clear();
-
-
-
-      //Render dashboard items
-        for (var key in layoutNode.config) {
-            if (layoutNode.config.hasOwnProperty(key)){
-
-
-                var layout = layoutNode.config[key];
-                var node = nodes[key];
-                var connected = checkConnection(layoutNode, node);
-                if (!connected) continue;
-                if (!node) continue;
-                var chartConfig = node.config;
-                if (!chartConfig) chartConfig = {};
-                var title = chartConfig.chartTitle;
-
-
-              //Create absolute div for the dashboard item
-                var outerDiv = document.createElement("div");
-                outerDiv.style.position = "absolute";
-                outerDiv.style.width = layout.width;
-                outerDiv.style.height = layout.height;
-                outerDiv.style.top = layout.top;
-                outerDiv.style.left = layout.left;
-                dashboardPanel.add(outerDiv);
-                dashboardPanel.resize();
-
-
-              //Create an inner div for padding purposes
-                var innerDiv = document.createElement("div");
-                innerDiv.style.width = "100%";
-                innerDiv.style.height = "100%";
-                innerDiv.style.padding = "10px";
-                innerDiv.style.boxSizing = "border-box";
-                outerDiv.appendChild(innerDiv);
-
-
-              //Create dashboard item
-                var dashboardItem = createDashboardItem(innerDiv,{
-                    title: title,
-                    subtitle: "",
-                    width: "100%",
-                    height: "100%"
-                });
-
-
-              //Update default style. Remove padding and margin because the
-              //inner div handles that.
-                var div = dashboardItem.el;
-                div.style.padding = "0px";
-                div.style.margin = "0px";
-
-
-              //Function used to create a overflow container for charts
-                var createChartContainer = function(){
-                    var innerDiv = dashboardItem.innerDiv;
-                    var chartContainer = document.createElement("div");
-                    chartContainer.style.position = "absolute";
-                    chartContainer.style.top = 0;
-                    innerDiv.style.overflow = "hidden";
-                    chartContainer.style.width = layout.imageWidth + "px";
-                    chartContainer.style.height = layout.imageHeight + "px";
-                    innerDiv.appendChild(chartContainer);
-                    return chartContainer;
-                };
-
-
-                onRender(dashboardItem.innerDiv, function(){
-
-                    var editor = getNodeEditor(node);
-                    if (editor){
-                        if (editor.renderChart){
-                            editor.update(node);
-                            editor.renderChart(createChartContainer());
-                            //editor.clear();
-                        }
-                    }
-
-                    updateSVG(div);
-
-                });
-            }
-        }
-
-
-      //Some charts take a little longer to render so update again just in case
-        setTimeout(updateLayout,800);
-    };
-
-
-  //**************************************************************************
-  //** createToggleButton
-  //**************************************************************************
-    var createToggleButton = function(parent){
-
-        var div = document.createElement("div");
-        div.setAttribute("desc", "toggleButton");
-        div.style.position = "absolute";
-        div.style.top = "60px";
-        div.style.right = "20px";
-        div.style.zIndex = 2;
-        parent.appendChild(div);
-
-
-        var options = ["Edit","Preview"];
-        toggleButton = bluewave.utils.createToggleButton(div, {
-            options: options,
-            //defaultValue: options[0],
-            onChange: function(val){
-                if (val==="Edit"){
-                    dashboardPanel.hide();
-                    editPanel.show();
-                    editPanel.focus();
-                }
-                else{
-                    editPanel.hide();
-                    dashboardPanel.show();
-                    updateDashboard();
-                }
-            }
-        });
-        addShowHide(toggleButton);
-        toggleButton._show = toggleButton.show;
-        toggleButton.show = function(){
-            if (getLayoutNode()) this._show();
-            else this.hide();
-        };
-    };
-
-
-  //**************************************************************************
-  //** createMask
-  //**************************************************************************
-    var createMask = function(parent){
-        var div = document.createElement("div");
-        div.setAttribute("desc", "mask");
-        div.style.position = "absolute";
-        div.style.zIndex = 3;
-        div.style.top = "0px";
-        div.style.width = "100%";
-        div.style.height = "100%";
-        div.style.backgroundColor = "#f5f5f5"; //maybe put this in main.css?
-        addShowHide(div);
-        div.hide();
-        parent.appendChild(div);
-        mask = div;
-    };
-
-
   //**************************************************************************
   //** addExtension
   //**************************************************************************
@@ -2316,7 +1858,6 @@ bluewave.Explorer = function(parent, config) {
     };
 
 
-
   //**************************************************************************
   //** Utils
   //**************************************************************************
@@ -2324,12 +1865,9 @@ bluewave.Explorer = function(parent, config) {
     var onRender = javaxt.dhtml.utils.onRender;
     var isDirty = javaxt.dhtml.utils.isDirty;
     var isArray = javaxt.dhtml.utils.isArray;
-    var setStyle = javaxt.dhtml.utils.setStyle;
     var addShowHide = javaxt.dhtml.utils.addShowHide;
-    var addResizeListener = javaxt.dhtml.utils.addResizeListener;
-
+    var createElement = javaxt.dhtml.utils.createElement;
     var resizeCanvas = bluewave.utils.resizeCanvas;
-    var createDashboardItem = bluewave.utils.createDashboardItem;
 
     init();
 };
