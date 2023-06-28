@@ -628,7 +628,12 @@ bluewave.Explorer = function(parent, config) {
                 var editor = filterEditors.shift();
                 var node = editor.getNode();
                 editor.update(node, function(){
-                    node.data = JSON.parse(JSON.stringify(editor.getData()));
+                    if (editor.getData){
+                        editor.getData(function(data){
+                            if (!data) node.data = [];
+                            else node.data = JSON.parse(JSON.stringify(data));
+                        });
+                    }
                     editor.clear(); //clean up the dom
                     applyFilter();
                 });
@@ -1199,18 +1204,16 @@ bluewave.Explorer = function(parent, config) {
 
 
 
-
+      //Set inputs and outputs
         var inputs = 0;
         var outputs = 1;
-
         if (nodeConfig.inputNodes){
             if (isArray(nodeConfig.inputNodes)){
                 if (nodeConfig.inputNodes.length>0) inputs = 1;
             }
         }
+        if (nodeConfig.output===false) outputs = 0;
 
-
-        if (nodeType==="layout") outputs = 0;
 
       //Create node
         var node = createNode({
@@ -1431,7 +1434,10 @@ bluewave.Explorer = function(parent, config) {
             var _update = editor.update;
             editor.update = function(node, callback){
                 _update(node, callback);
-                node.data = JSON.parse(JSON.stringify(editor.getData()));
+                editor.getData(function(data){
+                    if (!data) node.data = [];
+                    else node.data = JSON.parse(JSON.stringify(data));
+                });
             };
         }
 
@@ -1491,7 +1497,12 @@ bluewave.Explorer = function(parent, config) {
                             //win.close();
                             var editor = win.editor;
                             var node = editor.getNode();
-                            if (editor.getData) node.data = editor.getData();
+                            if (editor.getData){
+                                editor.getData(function(data){
+                                    if (!data) node.data = [];
+                                    else node.data = JSON.parse(JSON.stringify(data));
+                                });
+                            }
                             var chartConfig = editor.getConfig();
                             var orgConfig = node.config;
                             if (!orgConfig) orgConfig = {};
@@ -1526,6 +1537,8 @@ bluewave.Explorer = function(parent, config) {
                                 win.close();
                                 editor.clear();
                             }
+
+                            updateButtons();
                         }
                     };
 
