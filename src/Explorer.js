@@ -494,7 +494,12 @@ bluewave.Explorer = function(parent, config) {
       //Update class variables
         id = dashboard.id;
         name = dashboard.name;
-        description = dashboard.description;
+        if (dashboard.info){
+            description = dashboard.info.description;
+        }
+        else{
+            description = dashboard.description;
+        }
         thumbnail = dashboard.thumbnail;
 
 
