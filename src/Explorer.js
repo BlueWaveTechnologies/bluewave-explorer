@@ -180,8 +180,8 @@ bluewave.Explorer = function(parent, config) {
     };
 
 
-    var id, name, description, thumbnail; //dashboard attributes
-    var menubar, button = {};
+    var id, name, description, thumbnail; //dashboard metadata
+    var menubar, button = {}; //menu
     var tooltip, tooltipTimer, lastToolTipEvent; //tooltip
     var drawflow, nodes = {}; //drawflow
     var waitmask;
@@ -322,6 +322,47 @@ bluewave.Explorer = function(parent, config) {
 
 
   //**************************************************************************
+  //** setDescription
+  //**************************************************************************
+  /** Used to set a description for the current dashboard
+   */
+    this.setDescription = function(str){
+        description = str;
+    };
+
+
+  //**************************************************************************
+  //** getDescription
+  //**************************************************************************
+  /** Returns the description of the current dashboard
+   */
+    this.getDescription = function(){
+        return description;
+    };
+
+
+  //**************************************************************************
+  //** setThumbnail
+  //**************************************************************************
+  /** Used to set a thumbnail for the current dashboard
+   */
+    this.setThumbnail = function(img){
+        thumbnail = img;
+    };
+
+
+  //**************************************************************************
+  //** getThumbnail
+  //**************************************************************************
+  /** Returns a thumbnail for the current dashboard
+   */
+    this.getThumbnail= function(){
+        return thumbnail;
+    };
+
+
+
+  //**************************************************************************
   //** setID
   //**************************************************************************
   /** Used to set an ID for the current dashboard
@@ -346,7 +387,7 @@ bluewave.Explorer = function(parent, config) {
   //**************************************************************************
   /** Returns all the information required to reconstruct the current view
    */
-    this.getDashboard = function(noInfo){
+    this.getDashboard = function(){
 
 
       //Create dashboard object
@@ -358,7 +399,6 @@ bluewave.Explorer = function(parent, config) {
             thumbnail: thumbnail
         };
 
-        if (noInfo===true) return;
 
         dashboard.info = {
             layout: drawflow.export().drawflow.Home.data,
