@@ -265,6 +265,10 @@ bluewave.Explorer = function(parent, config) {
   //**************************************************************************
   //** onChange
   //**************************************************************************
+  /** Called whenever something changes in this panel (e.g. nodeCreated,
+   *  connectionCreated, zoomChange, etc). Additional information may be
+   *  available after the first argument (e.g. node).
+   */
     this.onChange = function(event){};
 
 
@@ -847,11 +851,11 @@ bluewave.Explorer = function(parent, config) {
         });
         drawflow.on('nodeRemoved', function(nodeID) {
             removeInputs(nodes, nodeID);
-            var nodeType = nodes[nodeID+""].type;
+            var node = nodes[nodeID+""];
             delete nodes[nodeID+""];
             updateButtons();
 
-            me.onChange('nodeRemoved');
+            me.onChange('nodeRemoved', node);
         });
         drawflow.on('connectionRemoved', function(info) {
             var outputID = info.output_id+"";
@@ -896,7 +900,7 @@ bluewave.Explorer = function(parent, config) {
             },200);
         });
         drawflow.on('nodeMoved', function(nodeID){
-            me.onChange('nodeMoved');
+            me.onChange('nodeMoved', nodes[nodeID+""]);
         });
 
 
@@ -1228,7 +1232,7 @@ bluewave.Explorer = function(parent, config) {
 
         addEventListeners(node);
 
-        me.onChange('nodeCreated');
+        me.onChange('nodeCreated', node);
 
 
 
@@ -1369,6 +1373,14 @@ bluewave.Explorer = function(parent, config) {
   //**************************************************************************
   //** getNodeEditor
   //**************************************************************************
+    this.getNodeEditor = function(node){
+        return getNodeEditor(node);
+    };
+
+
+  //**************************************************************************
+  //** getNodeEditor
+  //**************************************************************************
     var getNodeEditor = function(node){
 
 
@@ -1401,7 +1413,7 @@ bluewave.Explorer = function(parent, config) {
                     var chartConfig = editor.getConfig();
                     var node = editor.getNode();
                     node.config = JSON.parse(JSON.stringify(chartConfig));
-                    me.onChange('nodeUpdated');
+                    me.onChange('nodeUpdated', node);
 
                     //TODO: Update thumbnail?
                 };
@@ -1507,7 +1519,7 @@ bluewave.Explorer = function(parent, config) {
                             var orgConfig = node.config;
                             if (!orgConfig) orgConfig = {};
                             if (isDirty(chartConfig, orgConfig)){
-                                me.onChange('nodeUpdated');
+                                me.onChange('nodeUpdated', node);
                                 node.config = JSON.parse(JSON.stringify(chartConfig));
                                 updateTitle(node, node.config.chartTitle);
                                 if (editor.getChart){
@@ -1518,7 +1530,7 @@ bluewave.Explorer = function(parent, config) {
                                         createPreview(el, function(canvas){
                                             if (canvas && canvas.toDataURL){
                                                 node.preview = canvas.toDataURL("image/png");
-                                                me.onChange('nodeUpdated');
+                                                me.onChange('nodeUpdated', node);
                                                 createThumbnail(node, canvas);
                                             }
                                             win.close();
