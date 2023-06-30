@@ -494,11 +494,9 @@ bluewave.Explorer = function(parent, config) {
       //Update class variables
         id = dashboard.id;
         name = dashboard.name;
-        if (dashboard.info){
+        description = dashboard.description;
+        if (!description && dashboard.info){
             description = dashboard.info.description;
-        }
-        else{
-            description = dashboard.description;
         }
         thumbnail = dashboard.thumbnail;
 
@@ -516,7 +514,10 @@ bluewave.Explorer = function(parent, config) {
 
 
       //Return early if the dashboard is missing config info
-        if (!dashboard.info) return;
+        if (!dashboard.info){
+            if (callback) callback.apply(me, []);
+            return;
+        }
 
 
       //Import layout
