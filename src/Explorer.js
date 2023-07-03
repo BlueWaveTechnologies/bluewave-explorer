@@ -4,7 +4,7 @@ if(!bluewave) var bluewave={};
 //**  Explorer
 //******************************************************************************
 /**
- *   Panel used to explore data and create charts/graphs
+ *   Interactive panel used to create charts/graphs
  *
  ******************************************************************************/
 
@@ -874,9 +874,6 @@ bluewave.Explorer = function(parent, config) {
                                 }
                             }
                         });
-                    }
-                    else{
-                        if (node.type==="layout") acceptConnection=true;
                     }
                     return false;
                 }
