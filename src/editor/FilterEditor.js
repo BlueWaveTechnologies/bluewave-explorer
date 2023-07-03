@@ -124,8 +124,11 @@ bluewave.editor.FilterEditor = function(parent, config) {
   //**************************************************************************
   //** getData
   //**************************************************************************
-    this.getData = function(){
-        return data;
+  /** Returns filtered data via a given callback. The data is a JSON array
+   *  representing CSV data.
+   */
+    this.getData = function(callback){
+        if (callback) callback.apply(me, [data]);
     };
 
 

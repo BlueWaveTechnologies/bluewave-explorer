@@ -1307,6 +1307,7 @@ bluewave.utils = {
         };
         javaxt.dhtml.utils.merge(options, defaultConfig);
         options.headers = false;
+        if (text) text = text.trim();
         return alasql.from.CSV(text, options, null, 0, null);
     },
 
