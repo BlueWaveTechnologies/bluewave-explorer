@@ -894,25 +894,20 @@ bluewave.utils = {
         };
 
 
+        var createElement = javaxt.dhtml.utils.createElement;
+        var table = javaxt.dhtml.utils.createTable(parent);
+        var td;
 
-        var table = javaxt.dhtml.utils.createTable();
-        var tbody = table.firstChild;
-        var tr, td;
-
-        tr = document.createElement("tr");
-        tbody.appendChild(tr);
-        td = document.createElement("td");
-        tr.appendChild(td);
+        td = table.addRow().addColumn();
 
 
-        var checkbox = document.createElement("div");
+        var checkbox = createElement("div");
         checkbox.innerHTML = '<i class="fas fa-check"></i>';
 
 
-        var div = document.createElement("div");
+        var div = createElement("div", td);
         div.className = "color-picker-header";
         div.innerHTML = "Theme Colors";
-        td.appendChild(div);
 
         var themeColors = td;
         var blocks = [];
@@ -925,8 +920,7 @@ bluewave.utils = {
             blocks = [];
 
             colors.forEach((c)=>{
-                div = document.createElement("div");
-                div.className = "color-picker-option";
+                div = createElement("div", themeColors, "color-picker-option");
                 div.style.backgroundColor = c;
                 div.onclick = function(){
                     if (checkbox.parentNode === this) return;
@@ -934,27 +928,21 @@ bluewave.utils = {
                     this.appendChild(checkbox);
                     colorPicker.onChange(new iro.Color(this.style.backgroundColor).hexString);
                 };
-                themeColors.appendChild(div);
                 blocks.push(div);
             });
         };
         colorPicker.setColors(colors);
 
 
-        tr = document.createElement("tr");
-        tbody.appendChild(tr);
-        td = document.createElement("td");
-        tr.appendChild(td);
 
-        var div = document.createElement("div");
-        div.className = "color-picker-header noselect";
+        td = table.addRow().addColumn();
+        var div = createElement("div", td, "color-picker-header noselect");
         div.innerHTML = "Custom Colors";
-        td.appendChild(div);
+
 
         var createNewColor = function(){
 
-            div = document.createElement("div");
-            div.className = "color-picker-option";
+            div = createElement("div", td, "color-picker-option");
             div.onclick = function(){
                 if (checkbox.parentNode === this) return;
                 if (this.innerHTML === ""){
@@ -1015,17 +1003,15 @@ bluewave.utils = {
                 };
 
             };
-            td.appendChild(div);
-            var innerDiv = document.createElement("div");
-            innerDiv.className = "color-picker-new-option";
+
+            var innerDiv = createElement("div", div, "color-picker-new-option");
             innerDiv.innerHTML = "<i class=\"fas fa-plus\"></i>";
-            div.appendChild(innerDiv);
 
         };
 
         createNewColor();
 
-        parent.appendChild(table);
+
         return colorPicker;
     },
 
@@ -1036,6 +1022,8 @@ bluewave.utils = {
   /** Returns a callout with a color picker
    */
     createColorPickerCallout: function(config){
+        var createElement = javaxt.dhtml.utils.createElement;
+
 
       //Create popup
         var popup = new javaxt.dhtml.Callout(document.body,{
@@ -1049,29 +1037,22 @@ bluewave.utils = {
 
       //Create title div
         var title = "Select Color";
-        var titleDiv = document.createElement("div");
-        titleDiv.className = "window-header";
+        var titleDiv = createElement("div", innerDiv, "window-header");
         titleDiv.innerHTML = "<div class=\"window-title\">" + title + "</div>";
-        innerDiv.appendChild(titleDiv);
 
 
       //Create content div
-        var contentDiv = document.createElement("div");
-        contentDiv.style.padding = "0 15px 15px";
-        contentDiv.style.width = "325px";
-        contentDiv.style.backgroundColor = "#fff";
-        innerDiv.appendChild(contentDiv);
+        var contentDiv = createElement("div", innerDiv, {
+            padding: "0 15px 15px",
+            width: "325px",
+            backgroundColor: "#fff"
+        });
 
 
-        var table = javaxt.dhtml.utils.createTable();
-        var tbody = table.firstChild;
-        var tr = document.createElement('tr');
-        tbody.appendChild(tr);
+        var table = javaxt.dhtml.utils.createTable(contentDiv);
+        var tr = table.addRow();
+        var td = tr.addColumn();
 
-
-
-        var td = document.createElement('td');
-        tr.appendChild(td);
         var cp = bluewave.utils.createColorPicker(td, config);
 
         popup.onHide = function(){
@@ -1094,8 +1075,30 @@ bluewave.utils = {
             popup.onChange(color);
         };
 
-        contentDiv.appendChild(table);
         return popup;
+    },
+
+
+  //**************************************************************************
+  //** createLegend
+  //**************************************************************************
+    createLegend: function(parent){
+        var createElement = javaxt.dhtml.utils.createElement;
+
+        var legend = createElement("div", parent, "chart-legend");
+        legend.addItem = function(label, color){
+            var row = createElement("div", legend);
+            if (color){
+                var dot = createElement("div", row, "dot");
+                dot.style.backgroundColor = color;
+            }
+            createElement("span", row).innerHTML = label;
+        };
+        legend.clear = function(){
+            legend.innerHTML = "";
+        };
+        javaxt.dhtml.utils.addShowHide(legend);
+        return legend;
     },
 
 
