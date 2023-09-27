@@ -530,6 +530,76 @@
     padding: 0;
 }
 
+/**************************************************************************/
+/** Chart Title
+/**************************************************************************/
+
+.chart-title {
+    color: #000;
+    font-size: 15px;
+    font-weight: bold;
+    /*
+    line-height: 20px;
+    height: 32px;
+    */
+}
+
+.chart-title input[type="text"] {
+    width: 100%;
+    font-size: 15px;
+    font-weight: bold;
+}
+
+.chart-subtitle {
+    color: #8c8c8c;
+    font-size: 13px;
+}
+
+
+/**************************************************************************/
+/** Chart Legend
+/**************************************************************************/
+
+.chart-legend {
+    position: absolute;
+    right: 10px;
+    top: 15px;
+    z-index: 2;
+    background-color: #fff;
+    padding: 5px 7px;
+    border: 1px solid #dcdcdc;
+    border-radius: 5px;
+    text-align: left;
+    overflow: hidden;
+    max-height: 250px;
+    overflow-y: auto;
+    box-shadow: 0px 2px 7px 0px rgb(0 0 0 / 17%);
+}
+
+.chart-legend > div {
+   position: relative;
+   overflow: hidden;
+}
+
+.chart-legend .dot {
+    content: "";
+    width: 16px;
+    height: 16px;
+    background-color: #dcdcdc;
+    vertical-align:middle;
+    border-radius: 50%;
+    margin: 3px 5px 0 0;
+    float:left;
+    display: inline-block;
+    border: 1px solid #dcdcdc;
+}
+
+.chart-legend span {
+   font-size: 12px;
+}
+
+
+
 
 /**************************************************************************/
 /** Color Picker
@@ -692,27 +762,6 @@ svg text {
   stroke-width: 4px;
 }
 
-
-.chart-title {
-    color: #000;
-    font-size: 15px;
-    font-weight: bold;
-    /*
-    line-height: 20px;
-    height: 32px;
-    */
-}
-
-.chart-title input[type="text"] {
-    width: 100%;
-    font-size: 15px;
-    font-weight: bold;
-}
-
-.chart-subtitle {
-    color: #8c8c8c;
-    font-size: 13px;
-}
 
 .tick {
     font-size: 10px;
