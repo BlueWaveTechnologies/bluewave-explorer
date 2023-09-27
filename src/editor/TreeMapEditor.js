@@ -15,6 +15,7 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
         panel: {
 
         },
+        colors: bluewave.utils.getColorGradients(),
         chart: {
             showTooltip: true,
             shape: "circle"
@@ -29,6 +30,7 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
     var treeMapInputs = {};
     var chartConfig = {};
     var styleEditor;
+    var legend;
 
 
   //**************************************************************************
@@ -49,15 +51,11 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
 
       //Left column (chart options)
         td = tr.addColumn();
-        let div = document.createElement("div");
-        div.className = "chart-editor-options";
-        td.appendChild(div);
-        optionsDiv = div;
+        optionsDiv = createElement("div", td, "chart-editor-options");
 
 
       //Right column (chart preview)
-        td = tr.addColumn();
-        td.className = "chart-editor-preview";
+        td = tr.addColumn("chart-editor-preview");
         td.style.width = "100%";
         td.style.height = "100%";
 
@@ -221,6 +219,7 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
         });
 
       //Populate groupBy pulldown
+        treeMapInputs.groupBy.add("", "");
         groupByFields.forEach((field)=>{
             treeMapInputs.groupBy.add(field,field);
         });
@@ -267,9 +266,45 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
   //** createPreview
   //**************************************************************************
     var createPreview = function(){
+        if (legend) legend.hide();
+
         if (chartConfig.key && chartConfig.value){
             var data = inputData[0];
-            treeMapChart.update(chartConfig, data);
+            treeMapChart.update(chartConfig, data, function(){
+
+
+              //Render legend as needed
+                if (chartConfig.shape==="circle"){
+                    var groups = treeMapChart.getGroups();
+                    var groupNames = Object.keys(groups);
+                    if (groupNames.length>1){
+                        var rows = [];
+                        groupNames.forEach((groupName)=>{
+                            var arr = groups[groupName];
+                            var value = 0;
+                            var color = null;
+                            arr.forEach((d)=>{
+                                value += d.data.value;
+                                if (!color){
+                                    color = d.rect.style.fill;
+                                }
+                            });
+
+                            rows.push({key: groupName, value: value, color: color});
+                        });
+
+                        rows.sort(function(a, b){
+                            return b.value - a.value;
+                        });
+
+                        legend = createLegend(previewArea);
+                        rows.forEach((row)=>{
+                            legend.addItem(row.key, row.color);
+                        });
+                    }
+                }
+
+            });
         }
     };
 
@@ -302,7 +337,7 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
 
       //Create shape dropdown
         var shapeDropdown = new javaxt.dhtml.ComboBox(
-            document.createElement("div"),
+            createElement("div"),
             {
                 style: config.style.combobox,
                 readOnly: true
@@ -311,7 +346,13 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
         );
         shapeDropdown.add("Circular", "circle");
         shapeDropdown.add("Rectangular", "square");
-        shapeDropdown.setValue("circle");
+
+
+
+        var colorField = bluewave.utils.createColorField({
+            colors: config.colors,
+            style: config.style
+        });
 
 
 
@@ -327,6 +368,11 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
                             name: "shape",
                             label: "Shape",
                             type: shapeDropdown
+                        },
+                        {
+                            name: "color",
+                            label: "Color",
+                            type: colorField
                         }
                     ]
                 },
@@ -381,7 +427,19 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
       //Set initial value for the shape field
         var shapeField = form.findField("shape");
         var shape = chartConfig.shape;
-        shapeField.setValue(shape==="square" ? "square" : "circle");
+        if (shape==="square"){
+            shapeField.setValue("square");
+            form.showField("groupLabel");
+        }
+        else{
+            shapeField.setValue("circle");
+            form.hideField("groupLabel");
+        }
+
+
+      //Set initial value for the color field
+        colorField.setValue(JSON.stringify(chartConfig.colors));
+
 
       //Set initial value for group label
         var groupLabelField = form.findField("groupLabel");
@@ -404,6 +462,14 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
         form.onChange = function(){
             var settings = form.getData();
 
+            if (settings.shape==="circle"){
+                form.hideField("groupLabel");
+            }
+            else{
+                form.showField("groupLabel");
+            }
+
+
             if (settings.groupLabel==="true") settings.groupLabel = true;
             else settings.groupLabel = false;
 
@@ -417,6 +483,7 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
             chartConfig.keyLabel = settings.keyLabel;
             chartConfig.valueLabel = settings.valueLabel;
             chartConfig.shape = settings.shape;
+            chartConfig.colors = JSON.parse(settings.color);
 
             createPreview();
         };
@@ -444,7 +511,9 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
     var merge = javaxt.dhtml.utils.merge;
     var onRender = javaxt.dhtml.utils.onRender;
     var createTable = javaxt.dhtml.utils.createTable;
+    var createElement = javaxt.dhtml.utils.createElement;
     var createDashboardItem = bluewave.utils.createDashboardItem;
+    var createLegend = bluewave.utils.createLegend;
     var addTextEditor = bluewave.utils.addTextEditor;
     var getType = bluewave.chart.utils.getType;
     var parseData = bluewave.utils.parseData;
