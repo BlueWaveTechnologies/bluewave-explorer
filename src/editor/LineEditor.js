@@ -22,10 +22,9 @@ bluewave.editor.LineEditor = function(parent, config) {
     };
 
     var panel;
+    var previewArea, optionsDiv;
     var inputData = [];
-    var previewArea;
-    var lineChart, barChart;
-    var optionsDiv;
+    var lineChart;
     var plotInputs = {};
     var chartConfig = {
         layers: []
@@ -42,43 +41,43 @@ bluewave.editor.LineEditor = function(parent, config) {
         if (!config) config = {};
         config = merge(config, defaultConfig);
 
-        let table = createTable();
-        let tbody = table.firstChild;
-        var tr = document.createElement("tr");
-        tbody.appendChild(tr);
-        parent.appendChild(table);
+        let table = createTable(parent);
         me.el = table;
+
+        var tr = table.addRow();
         var td;
 
 
       //Create chart options
-        td = document.createElement("td");
+        td = tr.addColumn();
         td.style.height = "100%";
-        tr.appendChild(td);
-        var outerDiv = document.createElement("div");
-        outerDiv.className = "chart-editor-options";
+        var outerDiv = createElement("div", td, "chart-editor-options");
         outerDiv.style.height = "100%";
         outerDiv.style.position = "relative";
         outerDiv.style.overflow = "hidden";
         outerDiv.style.overflowY = "auto";
-        td.appendChild(outerDiv);
-        optionsDiv = document.createElement("div");
+
+        optionsDiv = createElement("div", outerDiv);
         optionsDiv.style.position = "absolute";
-        outerDiv.appendChild(optionsDiv);
 
 
       //Create chart preview
-        td = document.createElement("td");
-        td.className = "chart-editor-preview";
+        td = tr.addColumn("chart-editor-preview");
         td.style.width = "100%";
         td.style.height = "100%";
-        tr.appendChild(td);
 
-        var outerDiv = document.createElement("div");
+        var timer;
+        addResizeListener(td, function(){
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(()=>{
+                createLinePreview();
+            },800);
+        });
+
+        var outerDiv = createElement("div", td);
         outerDiv.style.height = "100%";
         outerDiv.style.position = "relative";
         outerDiv.style.overflow = "hidden";
-        td.appendChild(outerDiv);
 
         panel = createDashboardItem(outerDiv,{
             width: "100%",
@@ -101,15 +100,6 @@ bluewave.editor.LineEditor = function(parent, config) {
       //Watch for settings
         panel.settings.onclick = function(){
             editChart();
-        };
-
-
-      //Initialize chart
-        lineChart = new bluewave.charts.LineChart(previewArea, {});
-        lineChart.onClick = function(el, lineID){
-            var line = lineChart.getLayers()[lineID+""].line;
-            var layerID = lineMap[lineID].layer;
-            editLine(line, layerID);
         };
     };
 
@@ -186,11 +176,15 @@ bluewave.editor.LineEditor = function(parent, config) {
         panel.title.innerHTML = "Untitled";
         optionsDiv.innerHTML = "";
 
-        if (lineChart) lineChart.clear();
-        if (barChart) barChart.clear();
 
         if (colorPicker) colorPicker.hide();
         //if (styleEditor) styleEditor.hide();
+
+        if (lineChart){
+            lineChart.clear();
+            lineChart = null;
+        }
+        previewArea.innerHTML = "";
     };
 
 
@@ -264,7 +258,7 @@ bluewave.editor.LineEditor = function(parent, config) {
             }
         }
 
-        createLinePreview(lineChart);
+        createLinePreview();
     };
 
 
@@ -298,10 +292,9 @@ bluewave.editor.LineEditor = function(parent, config) {
         }
 
 
-        var div = document.createElement("div");
+        var div = createElement("div", parent);
         div.style.height = "100%";
         div.style.zIndex = 1;
-        parent.appendChild(div);
 
 
         var form = new javaxt.dhtml.Form(div, {
@@ -385,7 +378,7 @@ bluewave.editor.LineEditor = function(parent, config) {
             }
 
 
-            createLinePreview(lineChart);
+            createLinePreview();
         };
     };
 
@@ -394,8 +387,7 @@ bluewave.editor.LineEditor = function(parent, config) {
   //** createLabel
   //**************************************************************************
     var createLabel = function(label){
-        var row = document.createElement("div");
-        row.className = "form-label";
+        var row = createElement("div", "form-label");
         row.innerText = label + ":";
         return {
             name: "",
@@ -413,7 +405,7 @@ bluewave.editor.LineEditor = function(parent, config) {
   //** createDropdown
   //**************************************************************************
     var createDropdown = function(inputType,input){
-        input[inputType] = new javaxt.dhtml.ComboBox(document.createElement("div"), {
+        input[inputType] = new javaxt.dhtml.ComboBox(createElement("div"), {
             style: config.style.combobox,
             readOnly: true
         });
@@ -428,15 +420,32 @@ bluewave.editor.LineEditor = function(parent, config) {
   //**************************************************************************
   //** createLinePreview
   //**************************************************************************
-    var createLinePreview = function(lineChart){
+    var createLinePreview = function(chart){
 
-        lineChart.clear();
-        lineChart.setConfig(chartConfig);
+
+
+        if (chart){
+            chart.clear();
+        }
+        else{
+            previewArea.innerHTML = "";
+            chart = new bluewave.charts.LineChart(previewArea, chartConfig);
+            chart.onClick = function(el, lineID){
+                var line = chart.getLayers()[lineID+""].line;
+                var layerID = lineMap[lineID].layer;
+                editLine(line, layerID);
+            };
+
+            //chart.setConfig(chartConfig);
+            lineChart = chart;
+        }
+
+
 
 
         var colors = bluewave.utils.getColorPalette(true);
         var addLine = function(line, data, xAxis, yAxis, layerID){
-            lineChart.addLine(line, data, xAxis, yAxis);
+            chart.addLine(line, data, xAxis, yAxis);
             lineMap.push({
                 layer: layerID
             });
@@ -497,7 +506,7 @@ bluewave.editor.LineEditor = function(parent, config) {
             }
         });
 
-        lineChart.update();
+        chart.update();
     };
 
 
@@ -514,9 +523,9 @@ bluewave.editor.LineEditor = function(parent, config) {
         body.innerHTML = "";
 
 
-        //Create scaling dropdown
+      //Create scaling dropdown
         var scaleDropdown = new javaxt.dhtml.ComboBox(
-            document.createElement("div"),
+            createElement("div"),
             {
                 style: config.style.combobox,
                 readOnly: true
@@ -528,8 +537,10 @@ bluewave.editor.LineEditor = function(parent, config) {
         scaleDropdown.setValue("linear");
 
 
+
+      //Create "Min Value" dropdown
         var xMinDropdown = new javaxt.dhtml.ComboBox(
-            document.createElement("div"),
+            createElement("div"),
             {
                 style: config.style.combobox,
                 readOnly: false
@@ -780,7 +791,7 @@ bluewave.editor.LineEditor = function(parent, config) {
             var xMin = bluewave.chart.utils.parseFloat(xMinDropdown.getText());
             if (!isNaN(xMin)) chartConfig.xMin = xMin;
 
-            createLinePreview(lineChart);
+            createLinePreview();
         };
 
 
@@ -804,7 +815,7 @@ bluewave.editor.LineEditor = function(parent, config) {
 
       //Create dropdown for line style
         var lineDropdown = new javaxt.dhtml.ComboBox(
-            document.createElement("div"),
+            createElement("div"),
             {
                 style: config.style.combobox,
                 readOnly: true
@@ -819,7 +830,7 @@ bluewave.editor.LineEditor = function(parent, config) {
 
       //Create dropdown for smoothing options
         var smoothingDropdown = new javaxt.dhtml.ComboBox(
-            document.createElement("div"),
+            createElement("div"),
             {
                 style: config.style.combobox,
                 readOnly: true
@@ -849,7 +860,7 @@ bluewave.editor.LineEditor = function(parent, config) {
                             name: "lineColor",
                             label: "Color",
                             type: new javaxt.dhtml.ComboBox(
-                                document.createElement("div"),
+                                createElement("div"),
                                 {
                                     style: config.style.combobox
                                 }
@@ -874,7 +885,7 @@ bluewave.editor.LineEditor = function(parent, config) {
                             name: "pointColor",
                             label: "Color",
                             type: new javaxt.dhtml.ComboBox(
-                                document.createElement("div"),
+                                createElement("div"),
                                 {
                                     style: config.style.combobox
                                 }
@@ -1038,7 +1049,7 @@ bluewave.editor.LineEditor = function(parent, config) {
 
           //Update line chart
             line.setConfig(lineConfig);
-            lineChart.update();
+            createLinePreview();
 
 
           //Update chart config
@@ -1085,6 +1096,8 @@ bluewave.editor.LineEditor = function(parent, config) {
     var merge = javaxt.dhtml.utils.merge;
     var addShowHide = javaxt.dhtml.utils.addShowHide;
     var createTable = javaxt.dhtml.utils.createTable;
+    var createElement = javaxt.dhtml.utils.createElement;
+    var addResizeListener = javaxt.dhtml.utils.addResizeListener;
     var createDashboardItem = bluewave.utils.createDashboardItem;
     var createSlider = bluewave.utils.createSlider;
     var addTextEditor = bluewave.utils.addTextEditor;
