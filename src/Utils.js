@@ -257,9 +257,7 @@ bluewave.utils = {
   //** createSpacer
   //**************************************************************************
     createSpacer: function(toolbar){
-        var div = document.createElement("div");
-        div.className = "toolbar-spacer";
-        toolbar.appendChild(div);
+        javaxt.dhtml.utils.createElement("div", toolbar, "toolbar-spacer");
     },
 
 
@@ -339,6 +337,8 @@ bluewave.utils = {
   //** createDashboardItem
   //**************************************************************************
     createDashboardItem: function(parent, config){
+        var createElement = javaxt.dhtml.utils.createElement;
+
 
       //Set default config options
         var defaultConfig = {
@@ -360,48 +360,33 @@ bluewave.utils = {
         if (height.indexOf("%")===-1) height = parseInt(height) + "px";
 
 
-        var div = document.createElement("div");
-        div.className = "dashboard-item";
+
+        var div = createElement("div", parent, "dashboard-item");
         div.style.width = width;
         div.style.height = height;
         div.style.position = "relative";
-        parent.appendChild(div);
+
 
         var settings;
         if (config.settings===true){
-            settings = document.createElement("div");
-            settings.className = "dashboard-item-settings noselect";
+            settings = createElement("div", div, "dashboard-item-settings noselect");
             settings.innerHTML = '<i class="fas fa-cog"></i>';
-            div.appendChild(settings);
         }
 
 
-        var table = javaxt.dhtml.utils.createTable();
-        var tbody = table.firstChild;
-        var tr;
+        var table = javaxt.dhtml.utils.createTable(div);
 
-        tr = document.createElement("tr");
-        tbody.appendChild(tr);
-        var title = document.createElement("td");
-        title.className = "chart-title noselect";
+        var title = table.addRow().addColumn("chart-title noselect");
         title.innerHTML = config.title;
-        tr.appendChild(title);
 
-        tr = document.createElement("tr");
-        tbody.appendChild(tr);
-        var subtitle = document.createElement("td");
-        subtitle.className = "chart-subtitle noselect";
+        var subtitle = table.addRow().addColumn("chart-subtitle noselect");
         subtitle.innerHTML = config.subtitle;
-        tr.appendChild(subtitle);
 
-        tr = document.createElement("tr");
-        tbody.appendChild(tr);
-        var innerDiv = document.createElement("td");
+
+        var innerDiv = table.addRow().addColumn();
         innerDiv.style.height = "100%";
         innerDiv.style.position = "relative";
-        tr.appendChild(innerDiv);
 
-        div.appendChild(table);
 
         var waitmask;
         if (config.waitmask){
