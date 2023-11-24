@@ -160,6 +160,9 @@ bluewave.editor.LineEditor = function(parent, config) {
         }
 
 
+      //Enable tooltip
+        chartConfig.showTooltip = true;
+
         createForm(optionsDiv);
         createOptions();
     };
@@ -538,7 +541,7 @@ bluewave.editor.LineEditor = function(parent, config) {
 
 
 
-      //Create "Min Value" dropdown
+      //Create "Min Value" dropdown for the x-axis
         var xMinDropdown = new javaxt.dhtml.ComboBox(
             createElement("div"),
             {
@@ -547,33 +550,18 @@ bluewave.editor.LineEditor = function(parent, config) {
 
             }
         );
+        setMinValue("x", xMinDropdown);
 
-        var xKeys = [];
-        var layers = chartConfig.layers;
-        inputData.forEach(function (data, i){
-            let layer = layers[i];
-            if (layer.xAxis){
-                data.forEach((d)=>{
-                    xKeys.push(d[layer.xAxis]);
-                });
+      //Create "Min Value" dropdown for the y-axis
+        var yMinDropdown = new javaxt.dhtml.ComboBox(
+            createElement("div"),
+            {
+                style: config.style.combobox,
+                readOnly: false
+
             }
-        });
-
-        var xType = getType(xKeys);
-        if (xType=="number" || xType=="currency"){
-            var minX = Number.MAX_VALUE;
-            var maxX = 0;
-            xKeys.forEach((key)=>{
-                var n = bluewave.chart.utils.parseFloat(key);
-                minX = Math.min(n, minX);
-                maxX = Math.max(n, maxX);
-            });
-
-            xMinDropdown.add("0", 0);
-            if (minX!=0) xMinDropdown.add(minX+"", minX);
-            xMinDropdown.setValue(0);
-        }
-
+        );
+        setMinValue("y", yMinDropdown);
 
 
 
@@ -699,6 +687,16 @@ bluewave.editor.LineEditor = function(parent, config) {
                                 }
 
                             ]
+                        },
+                        {
+                            name: "yMin",
+                            label: "Min Value",
+                            type: yMinDropdown
+                        },
+                        {
+                            name: "yTicks",
+                            label: "Ticks",
+                            type: "text"
                         }
                     ]
                 }
@@ -708,12 +706,12 @@ bluewave.editor.LineEditor = function(parent, config) {
         });
 
 
-       //Set initial value for X-gridline
+      //Set initial value for X-gridline
         var xGridField = form.findField("xGrid");
         var xGrid = chartConfig.xGrid;
         xGridField.setValue(xGrid===true ? true : false);
 
-       //Set initial value for Y-gridline
+      //Set initial value for Y-gridline
         var yGridField = form.findField("yGrid");
         var yGrid = chartConfig.yGrid;
         yGridField.setValue(yGrid===true ? true : false);
@@ -748,6 +746,11 @@ bluewave.editor.LineEditor = function(parent, config) {
         var xTicks = chartConfig.xTicks;
         if (isNaN(xTicks)) xTicks = 10;
         form.findField("xTicks").setValue(xTicks);
+
+        createSlider("yTicks", form, "", 0, 50, 1);
+        var yTicks = chartConfig.yTicks;
+        if (isNaN(yTicks)) yTicks = 10;
+        form.findField("yTicks").setValue(yTicks);
 
 
       //Process onChange events
@@ -786,10 +789,14 @@ bluewave.editor.LineEditor = function(parent, config) {
             if (chartConfig.xLabel) chartConfig.xLabel = chartConfig.layers[0].xAxis;
             if (chartConfig.yLabel) chartConfig.yLabel = chartConfig.layers[0].yAxis;
             chartConfig.xTicks = settings.xTicks;
+            chartConfig.yTicks = settings.yTicks;
 
 
             var xMin = bluewave.chart.utils.parseFloat(xMinDropdown.getText());
             if (!isNaN(xMin)) chartConfig.xMin = xMin;
+
+            var yMin = bluewave.chart.utils.parseFloat(yMinDropdown.getText());
+            if (!isNaN(yMin)) chartConfig.yMin = yMin;
 
             createLinePreview();
         };
@@ -799,6 +806,48 @@ bluewave.editor.LineEditor = function(parent, config) {
         styleEditor.showAt(108,57);
         form.resize();
 
+    };
+
+
+  //**************************************************************************
+  //** setMinValue
+  //**************************************************************************
+  /** Used to update the pulldown options for a given combobox
+   *  @param axis Either "x" or "y"
+   *  @param dropdown Either xMinDropdown
+   */
+    var setMinValue = function(axis, dropdown){
+        var keys = [];
+        var layers = chartConfig.layers;
+        inputData.forEach(function (data, i){
+            let layer = layers[i];
+            if (layer[axis+"Axis"]){
+                data.forEach((d)=>{
+                    keys.push(d[layer[axis+"Axis"]]);
+                });
+            }
+        });
+
+        var xType = getType(keys);
+        if (xType=="number" || xType=="currency"){
+            var minVal = Number.MAX_VALUE;
+            var maxVal = 0;
+            keys.forEach((key)=>{
+                var n = bluewave.chart.utils.parseFloat(key);
+                minVal = Math.min(n, minVal);
+                maxVal = Math.max(n, maxVal);
+            });
+
+            dropdown.add("0", 0);
+            if (minVal!=0) dropdown.add(minVal+"", minVal);
+
+            var currVal = bluewave.chart.utils.parseFloat(chartConfig[axis+"Min"]);
+            if (isNaN(currVal)) dropdown.setValue(0);
+            else{
+                dropdown.add(currVal+"", currVal);
+                dropdown.setValue(currVal);
+            }
+        }
     };
 
 
@@ -1026,13 +1075,7 @@ bluewave.editor.LineEditor = function(parent, config) {
             lineConfig.point.radius = settings.pointRadius;
 
             var smoothingType = settings.smoothingType;
-            if (smoothingType==="none"){
-                lineConfig.smoothing = "none";
-                lineConfig.smoothingValue = 0;
-                form.disableField("smoothingValue");
-                smoothingSlider.disabled = true;
-            }
-            else if (smoothingType==="spline"){
+            if (smoothingType==="none" || smoothingType==="spline"){
                 lineConfig.smoothing = smoothingType;
                 lineConfig.smoothingValue = 0;
                 form.disableField("smoothingValue");
@@ -1047,12 +1090,9 @@ bluewave.editor.LineEditor = function(parent, config) {
             smoothingSlider.focus();
 
 
-          //Update line chart
-            line.setConfig(lineConfig);
-            createLinePreview();
-
 
           //Update chart config
+            line.setConfig(lineConfig);
             var layer = chartConfig.layers[layerID];
             if (layer.group){
                 //TODO: Persist styles for individual lines in a group
@@ -1060,6 +1100,10 @@ bluewave.editor.LineEditor = function(parent, config) {
             else{
                 chartConfig.layers[layerID].line = line.getConfig();
             }
+
+
+          //Render updates
+            createLinePreview();
         };
 
 
