@@ -265,6 +265,7 @@ bluewave.utils = {
   //** createToggleButton
   //**************************************************************************
     createToggleButton: function(parent, config){
+        var createElement = javaxt.dhtml.utils.createElement;
 
       //Set default config options
         var defaultConfig = {
@@ -280,9 +281,7 @@ bluewave.utils = {
         javaxt.dhtml.utils.merge(config, defaultConfig);
 
 
-        var div = document.createElement("div");
-        div.className = config.style.panel;
-        parent.appendChild(div);
+        var div = createElement("div", parent, config.style.panel);
 
 
         var onClick = function(btn, silent){
@@ -294,13 +293,11 @@ bluewave.utils = {
         };
 
         for (var i=0; i<config.options.length; i++){
-            var btn = document.createElement("div");
-            btn.className = config.style.button;
+            var btn = createElement("div", div, config.style.button);
             btn.innerHTML = config.options[i];
             btn.onclick = function(){
                 onClick(this);
             };
-            div.appendChild(btn);
         }
 
         div.setValue = function(val, silent){
@@ -485,6 +482,108 @@ bluewave.utils = {
         }
 
         return grid;
+    },
+
+
+  //**************************************************************************
+  //** createEditor
+  //**************************************************************************
+  /** Used to create an editor with two panels. The left panel is used to
+   *  identify input data and the main panel contains the corresponding chart.
+   */
+    createEditor: function(parent, config){
+        var createTable = javaxt.dhtml.utils.createTable;
+        var createElement = javaxt.dhtml.utils.createElement;
+        var addResizeListener = javaxt.dhtml.utils.addResizeListener;
+        var addTextEditor = bluewave.utils.addTextEditor;
+        var createDashboardItem = bluewave.utils.createDashboardItem;
+
+
+        if (!config) config = {
+            onResize: function(){},
+            onTitleChange: function(){},
+            onSettings: function(){}
+        };
+
+
+        let table = createTable(parent);
+        var tr = table.addRow();
+        var td;
+
+
+      //Create chart options
+        td = tr.addColumn();
+        td.style.height = "100%";
+        var outerDiv = createElement("div", td, "chart-editor-options");
+        outerDiv.style.height = "100%";
+        outerDiv.style.position = "relative";
+        outerDiv.style.overflow = "hidden";
+        outerDiv.style.overflowY = "auto";
+
+        var optionsDiv = createElement("div", outerDiv);
+        optionsDiv.style.position = "absolute";
+
+
+      //Create chart preview
+        td = tr.addColumn("chart-editor-preview");
+        td.style.width = "100%";
+        td.style.height = "100%";
+
+        var timer;
+        addResizeListener(td, function(){
+            if (timer) clearTimeout(timer);
+            timer = setTimeout(()=>{
+                config.onResize();
+            },800);
+        });
+
+        var outerDiv = createElement("div", td);
+        outerDiv.style.height = "100%";
+        outerDiv.style.position = "relative";
+        outerDiv.style.overflow = "hidden";
+
+        var panel = createDashboardItem(outerDiv,{
+            width: "100%",
+            height: "100%",
+            title: "Untitled",
+            settings: true
+        });
+        panel.el.className = "";
+        panel.el.style.position = "absolute";
+
+
+      //Allow users to change the title associated with the chart
+        addTextEditor(panel.title, function(title){
+            panel.title.innerHTML = title;
+            config.onTitleChange(title);
+        });
+
+
+      //Watch for settings
+        panel.settings.onclick = function(){
+            config.onSettings();
+        };
+
+        return {
+            el: table,
+            getTitle: function(){
+                return panel.title.innerHTML;
+            },
+            setTitle: function(title){
+                panel.title.innerHTML = title;
+            },
+            getLeftPanel: function(){
+                return optionsDiv;
+            },
+            getChartArea: function(){
+                return panel.innerDiv;
+            },
+            clear: function(){
+                panel.title.innerHTML = "Untitled";
+                optionsDiv.innerHTML = "";
+                panel.innerDiv.innerHTML = "";
+            }
+        };
     },
 
 
