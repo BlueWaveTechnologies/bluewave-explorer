@@ -21,11 +21,8 @@ bluewave.editor.BarEditor = function(parent, config) {
         }
     };
 
-    var panel;
+    var editor;
     var inputData = [];
-    var previewArea;
-    var barChart;
-    var optionsDiv;
     var plotInputs = {};
     var chartConfig = {};
     var colorPicker;
@@ -41,74 +38,23 @@ bluewave.editor.BarEditor = function(parent, config) {
         chartConfig = config.chart;
 
 
-        let table = createTable();
-        let tbody = table.firstChild;
-        var tr = document.createElement("tr");
-        tbody.appendChild(tr);
-        parent.appendChild(table);
-        me.el = table;
-        var td;
+        if (!config) config = {};
+        config = merge(config, defaultConfig);
 
 
-      //Create chart options
-        td = document.createElement("td");
-        td.style.height = "100%";
-        tr.appendChild(td);
-        var outerDiv = document.createElement("div");
-        outerDiv.className = "chart-editor-options";
-        outerDiv.style.height = "100%";
-        outerDiv.style.position = "relative";
-        outerDiv.style.overflow = "hidden";
-        outerDiv.style.overflowY = "auto";
-        td.appendChild(outerDiv);
-        optionsDiv = document.createElement("div");
-        optionsDiv.style.position = "absolute";
-        outerDiv.appendChild(optionsDiv);
-
-
-      //Create chart preview
-        td = document.createElement("td");
-        td.className = "chart-editor-preview";
-        td.style.width = "100%";
-        td.style.height = "100%";
-        tr.appendChild(td);
-
-        var outerDiv = document.createElement("div");
-        outerDiv.style.height = "100%";
-        outerDiv.style.position = "relative";
-        outerDiv.style.overflow = "hidden";
-        td.appendChild(outerDiv);
-
-        panel = createDashboardItem(outerDiv,{
-            width: "100%",
-            height: "100%",
-            title: "Untitled",
-            settings: true
+      //Create editor
+        editor = createEditor(parent, {
+            onSettings: function(){
+                editChart();
+            },
+            onResize: function(){
+                createPreview();
+            },
+            onTitleChange: function(title){
+                chartConfig.chartTitle = title;
+            }
         });
-        previewArea = panel.innerDiv;
-        panel.el.className = "";
-        panel.el.style.position = "absolute";
-
-
-      //Allow users to change the title associated with the chart
-        addTextEditor(panel.title, function(title){
-            panel.title.innerHTML = title;
-            chartConfig.chartTitle = title;
-        });
-
-
-      //Watch for settings
-        panel.settings.onclick = function(){
-            editChart();
-        };
-
-
-      //Initialize chart
-        barChart = new bluewave.charts.BarChart(previewArea, {});
-        barChart.onClick = function(bar, barID){
-            // chartConfig.barColor = d3.select(bar).attr("fill");
-            editBar(barID);
-        };
+        me.el = editor.el;
     };
 
 
@@ -142,11 +88,11 @@ bluewave.editor.BarEditor = function(parent, config) {
 
       //Set title
         if (chartConfig.chartTitle){
-            panel.title.innerHTML = chartConfig.chartTitle;
+            editor.setTitle(chartConfig.chartTitle);
         }
 
 
-        createForm(optionsDiv);
+        createForm(editor.getLeftPanel());
         createOptions();
     };
 
@@ -158,14 +104,12 @@ bluewave.editor.BarEditor = function(parent, config) {
         inputData = [];
         chartConfig = {};
         plotInputs = {};
-        panel.title.innerHTML = "Untitled";
-        optionsDiv.innerHTML = "";
 
-
-        if (barChart) barChart.clear();
 
         if (colorPicker) colorPicker.hide();
         //if (styleEditor) styleEditor.hide();
+
+        editor.clear();
     };
 
 
@@ -184,7 +128,7 @@ bluewave.editor.BarEditor = function(parent, config) {
   //** getChart
   //**************************************************************************
     this.getChart = function(){
-        return previewArea;
+        return editor.getChartArea();
     };
 
 
@@ -196,7 +140,7 @@ bluewave.editor.BarEditor = function(parent, config) {
    */
     this.renderChart = function(parent){
         var chart = new bluewave.charts.BarChart(parent, {});
-        chart.update(chartConfig, inputData);
+        createPreview(chart);
         return chart;
     };
 
@@ -231,7 +175,7 @@ bluewave.editor.BarEditor = function(parent, config) {
 
         }
 
-        createBarPreview();
+        createPreview();
     };
 
 
@@ -261,11 +205,10 @@ bluewave.editor.BarEditor = function(parent, config) {
         }
 
 
-        var div = document.createElement("div");
-        div.style.height = "100%";
-        div.style.zIndex = 1;
-        parent.appendChild(div);
-
+        var div = createElement("div", parent, {
+            height: "100%",
+            zIndex: 1
+        });
 
         var form = new javaxt.dhtml.Form(div, {
             style: config.style.form,
@@ -275,7 +218,7 @@ bluewave.editor.BarEditor = function(parent, config) {
         form.onChange = function(input, value){
             var key = input.name;
             chartConfig[key] = value;
-            createBarPreview();
+            createPreview();
         };
     };
 
@@ -284,8 +227,7 @@ bluewave.editor.BarEditor = function(parent, config) {
   //** createLabel
   //**************************************************************************
     var createLabel = function(label){
-        var row = document.createElement("div");
-        row.className = "form-label";
+        var row = createElement("div", "form-label");
         row.innerText = label + ":";
         return {
             name: "",
@@ -303,7 +245,7 @@ bluewave.editor.BarEditor = function(parent, config) {
   //** createDropdown
   //**************************************************************************
     var createDropdown = function(inputType,input){
-        input[inputType] = new javaxt.dhtml.ComboBox(document.createElement("div"), {
+        input[inputType] = new javaxt.dhtml.ComboBox(createElement("div"), {
             style: config.style.combobox,
             readOnly: true
         });
@@ -316,12 +258,25 @@ bluewave.editor.BarEditor = function(parent, config) {
 
 
   //**************************************************************************
-  //** createBarPreview
+  //** createPreview
   //**************************************************************************
-    var createBarPreview = function(){
-        onRender(previewArea, function(){
-            barChart.update(chartConfig, inputData);
-        });
+    var createPreview = function(chart){
+
+        if (chart){
+            chart.clear();
+        }
+        else{
+            var previewArea = editor.getChartArea();
+            previewArea.innerHTML = "";
+            chart = new bluewave.charts.BarChart(previewArea, {});
+            chart.onClick = function(bar, barID){
+                editBar(barID);
+            };
+        }
+
+
+
+        chart.update(chartConfig, inputData);
     };
 
 
@@ -339,7 +294,7 @@ bluewave.editor.BarEditor = function(parent, config) {
 
       //Create layout dropdown
         var chartLayout = new javaxt.dhtml.ComboBox(
-            document.createElement("div"),
+            createElement("div"),
             {
                 style: config.style.combobox,
                 readOnly: true
@@ -403,6 +358,11 @@ bluewave.editor.BarEditor = function(parent, config) {
                                 }
 
                             ]
+                        },
+                        {
+                            name: "xTicks",
+                            label: "Ticks",
+                            type: "text"
                         }
                     ]
                 },
@@ -433,6 +393,11 @@ bluewave.editor.BarEditor = function(parent, config) {
                                 }
 
                             ]
+                        },
+                        {
+                            name: "yTicks",
+                            label: "Ticks",
+                            type: "text"
                         }
                     ]
                 }
@@ -473,6 +438,17 @@ bluewave.editor.BarEditor = function(parent, config) {
         stackField.setValue(stack===true ? true : false);
 
 
+        createSlider("xTicks", form, "", 0, 50, 1);
+        var xTicks = chartConfig.xTicks;
+        if (isNaN(xTicks)) xTicks = 10;
+        form.findField("xTicks").setValue(xTicks);
+
+        createSlider("yTicks", form, "", 0, 50, 1);
+        var yTicks = chartConfig.yTicks;
+        if (isNaN(yTicks)) yTicks = 10;
+        form.findField("yTicks").setValue(yTicks);
+
+
       //Process onChange events
         form.onChange = function(){
             var settings = form.getData();
@@ -500,6 +476,8 @@ bluewave.editor.BarEditor = function(parent, config) {
             chartConfig.yGrid = settings.yGrid;
             chartConfig.xLabel = settings.xLabel;
             chartConfig.yLabel = settings.yLabel;
+            chartConfig.xTicks = settings.xTicks;
+            chartConfig.yTicks = settings.yTicks;
             chartConfig.stackValues = settings.stackValues;
 
 
@@ -508,7 +486,7 @@ bluewave.editor.BarEditor = function(parent, config) {
             chartConfig.animationSteps = 0;
 
           //Render preview
-            createBarPreview();
+            createPreview();
 
           //Restore animation
             chartConfig.animationSteps = animationSteps;
@@ -543,7 +521,7 @@ bluewave.editor.BarEditor = function(parent, config) {
                             name: "barColor",
                             label: "Color",
                             type: new javaxt.dhtml.ComboBox(
-                                document.createElement("div"),
+                                createElement("div"),
                                 {
                                     style: config.style.combobox
                                 }
@@ -555,6 +533,16 @@ bluewave.editor.BarEditor = function(parent, config) {
                             type: "text"
                         }
                     ]
+                },
+                {
+                    group: "Border",
+                    items: [
+                        {
+                            name: "borderRadius",
+                            label: "Radius",
+                            type: "text"
+                        }
+                    ]
                 }
             ]
         });
@@ -563,30 +551,38 @@ bluewave.editor.BarEditor = function(parent, config) {
         createColorOptions("barColor", form);
 
         createSlider("fillOpacity", form, "%");
-        var fillOpacity = chartConfig.fillOpacity;
-        if (isNaN(fillOpacity)) fillOpacity = 1;
-        chartConfig.fillOpacity = fillOpacity;
-        form.findField("fillOpacity").setValue(fillOpacity*100);
 
+
+        createSlider("borderRadius", form, "", 0, 50, 1);
+        var borderRadius = chartConfig.borderRadius;
+        if (isNaN(borderRadius)) borderRadius = 0;
+        form.findField("borderRadius").setValue(borderRadius);
 
 
         if(datasetID !== null && datasetID !== undefined){
 
             let n = `${datasetID}`;
 
-            if( !chartConfig["barColor" + n] ) chartConfig["barColor" + n] = "#6699CC";
-            if( isNaN(chartConfig["fillOpacity" + n]) ) chartConfig["fillOpacity" + n] = 1;
+            var barColor = chartConfig["barColor" + n];
+            if (!barColor) barColor = "#6699CC";
+            chartConfig["barColor" + n] = barColor;
+            form.findField("barColor").setValue(barColor);
 
 
-            form.findField("barColor").setValue(chartConfig["barColor" + n]);
-            form.findField("fillOpacity").setValue(chartConfig["fillOpacity" + n]*100);
+
+            var fillOpacity = chartConfig["fillOpacity" + n];
+            if (isNaN(fillOpacity)) fillOpacity = 1;
+            chartConfig["fillOpacity" + n] = fillOpacity;
+            form.findField("fillOpacity").setValue(fillOpacity*100);
+
 
 
             form.onChange = function(){
                 let settings = form.getData();
                 chartConfig["barColor" + n] = settings.barColor;
-                chartConfig["fillOpacity" + n] = settings.fillOpacity;
-                createBarPreview();
+                chartConfig["fillOpacity" + n] = settings.fillOpacity/100;
+                chartConfig.borderRadius = settings.borderRadius;
+                createPreview();
             };
         }
 
@@ -621,13 +617,11 @@ bluewave.editor.BarEditor = function(parent, config) {
   //** Utils
   //**************************************************************************
     var merge = javaxt.dhtml.utils.merge;
-    var onRender = javaxt.dhtml.utils.onRender;
-    var createTable = javaxt.dhtml.utils.createTable;
-    var createDashboardItem = bluewave.utils.createDashboardItem;
+    var createElement = javaxt.dhtml.utils.createElement;
+
+    var createEditor = bluewave.utils.createEditor;
     var createSlider = bluewave.utils.createSlider;
-    var addTextEditor = bluewave.utils.addTextEditor;
     var getStyleEditor = bluewave.utils.getStyleEditor;
-    var getType = bluewave.chart.utils.getType;
     var parseData = bluewave.utils.parseData;
 
     init();
