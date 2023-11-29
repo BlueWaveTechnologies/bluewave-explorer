@@ -1,6 +1,8 @@
 # Introduction
 The bluewave-explorer library is a data visualization framework used to create charts and graphs from tabular data.
 
+- [Live Demo](https://bluewavetechnologies.github.io/bluewave-explorer/demo/)
+
 ## General Usage
 The bluewave-explorer component is instantiated using a parent and a config object. The parent is a DOM element in 
 which to render the component and the config object is a JSON object with configuration settings.
