@@ -24,12 +24,8 @@ bluewave.editor.ScatterEditor = function(parent, config) {
         }
     };
 
-    var panel;
+    var editor;
     var inputData = [];
-    var previewArea;
-    var scatterChart;
-    var optionsDiv;
-
     var plotInputs = {};
     var chartConfig = {};
 
@@ -48,54 +44,20 @@ bluewave.editor.ScatterEditor = function(parent, config) {
         chartConfig = config.chart;
 
 
-        let table = createTable();
-        let tbody = table.firstChild;
-        var tr = document.createElement("tr");
-        tbody.appendChild(tr);
-        parent.appendChild(table);
-        me.el = table;
-        var td;
 
-        td = document.createElement("td");
-        tr.appendChild(td);
-        let div = document.createElement("div");
-        div.className = "chart-editor-options";
-        td.appendChild(div);
-        optionsDiv = div;
-
-
-      //Create chart preview
-        td = document.createElement("td");
-        td.className = "chart-editor-preview";
-        td.style.width = "100%";
-        td.style.height = "100%";
-        tr.appendChild(td);
-
-        panel = createDashboardItem(td,{
-            width: "100%",
-            height: "100%",
-            title: "Scatter Chart",
-            settings: true
+      //Create editor
+        editor = createEditor(parent, {
+            onSettings: function(){
+                if (chartConfig) editChart();
+            },
+            onResize: function(){
+                createPreview();
+            },
+            onTitleChange: function(title){
+                chartConfig.chartTitle = title;
+            }
         });
-        previewArea = panel.innerDiv;
-        panel.el.className = "";
-
-
-      //Allow users to change the title associated with the chart
-        addTextEditor(panel.title, function(title){
-            panel.title.innerHTML = title;
-            chartConfig.chartTitle = title;
-        });
-
-
-      //Watch for settings
-        panel.settings.onclick = function(){
-            editChart();
-        };
-
-
-      //Initialize chart area when ready
-        scatterChart = new bluewave.charts.ScatterChart(previewArea, {});
+        me.el = editor.el;
     };
 
 
@@ -127,11 +89,11 @@ bluewave.editor.ScatterEditor = function(parent, config) {
 
       //Set title
         if (chartConfig.chartTitle){
-            panel.title.innerHTML = chartConfig.chartTitle;
+            editor.setTitle(chartConfig.chartTitle);
         }
 
+        createOptions(editor.getLeftPanel());
 
-        createOptions(optionsDiv);
     };
 
 
@@ -141,10 +103,8 @@ bluewave.editor.ScatterEditor = function(parent, config) {
     this.clear = function(){
         inputData = [];
         chartConfig = {};
-        panel.title.innerHTML = "Untitled";
-        optionsDiv.innerHTML = "";
+        editor.clear();
 
-        if (scatterChart) scatterChart.clear();
         if (colorPicker) colorPicker.hide();
     };
 
@@ -163,7 +123,7 @@ bluewave.editor.ScatterEditor = function(parent, config) {
   //** getChart
   //**************************************************************************
     this.getChart = function(){
-        return previewArea;
+        return editor.getChartArea();
     };
 
 
@@ -175,7 +135,7 @@ bluewave.editor.ScatterEditor = function(parent, config) {
    */
     this.renderChart = function(parent){
         var chart = new bluewave.charts.ScatterChart(parent, {});
-        chart.update(chartConfig, inputData);
+        createPreview(chart);
         return chart;
     };
 
@@ -185,12 +145,11 @@ bluewave.editor.ScatterEditor = function(parent, config) {
   //**************************************************************************
     var createOptions = function(parent) {
 
-        var table = createTable();
-        var tbody = table.firstChild;
+        var table = createTable(parent);
         table.style.height = "";
-        parent.appendChild(table);
-        createDropdown(tbody,"xAxis","X-Axis",createScatterPreview);
-        createDropdown(tbody,"yAxis","Y-Axis",createScatterPreview);
+
+        createDropdown(table,"xAxis","X-Axis",createPreview);
+        createDropdown(table,"yAxis","Y-Axis",createPreview);
 
 
         var data = inputData[0];
@@ -208,21 +167,14 @@ bluewave.editor.ScatterEditor = function(parent, config) {
   //**************************************************************************
   //** createDropdown
   //**************************************************************************
-    var createDropdown = function(tbody,inputType,displayName,callBack){
-        var tr, td;
+    var createDropdown = function(table,inputType,displayName,callBack){
+        var td;
 
-        tr = document.createElement("tr");
-        tbody.appendChild(tr);
-        td = document.createElement("td");
-        tr.appendChild(td);
+
+        td = table.addRow().addColumn();
         td.innerHTML= displayName+":";
 
-        tr = document.createElement("tr");
-        tbody.appendChild(tr);
-        td = document.createElement("td");
-        tr.appendChild(td);
-
-
+        td = table.addRow().addColumn();
         plotInputs[inputType] = new javaxt.dhtml.ComboBox(td, {
             style: config.style.combobox,
             readOnly: true
@@ -235,10 +187,20 @@ bluewave.editor.ScatterEditor = function(parent, config) {
 
 
   //**************************************************************************
-  //** createScatterPreview
+  //** createPreview
   //**************************************************************************
-    var createScatterPreview = function(){
-        scatterChart.update(chartConfig, inputData);
+    var createPreview = function(chart){
+
+        if (chart){
+            chart.clear();
+        }
+        else{
+            var previewArea = editor.getChartArea();
+            previewArea.innerHTML = "";
+            chart = new bluewave.charts.ScatterChart(previewArea, {});
+        }
+
+        chart.update(chartConfig, inputData);
     };
 
 
@@ -270,7 +232,7 @@ bluewave.editor.ScatterEditor = function(parent, config) {
 
       //Create "Min Value" dropdown
         var xMinDropdown = new javaxt.dhtml.ComboBox(
-            document.createElement("div"),
+            createElement("div"),
             {
                 style: config.style.combobox,
                 readOnly: false
@@ -324,7 +286,7 @@ bluewave.editor.ScatterEditor = function(parent, config) {
                           options: [
                               {
                                   label: "",
-                                  value: true,
+                                  value: true
                               }
 
                           ]
@@ -344,7 +306,7 @@ bluewave.editor.ScatterEditor = function(parent, config) {
                           options: [
                               {
                                   label: "",
-                                  value: true,
+                                  value: true
                               }
 
                           ]
@@ -359,7 +321,7 @@ bluewave.editor.ScatterEditor = function(parent, config) {
                           name: "pointColor",
                           label: "Color",
                           type: new javaxt.dhtml.ComboBox(
-                              document.createElement("div"),
+                              createElement("div"),
                               {
                                   style: config.style.combobox
                               }
@@ -542,7 +504,7 @@ bluewave.editor.ScatterEditor = function(parent, config) {
             var xMin = bluewave.chart.utils.parseFloat(xMinDropdown.getText());
             if (!isNaN(xMin)) chartConfig.xMin = xMin;
 
-            createScatterPreview();
+            createPreview();
         };
 
 
@@ -577,11 +539,12 @@ bluewave.editor.ScatterEditor = function(parent, config) {
   //** Utils
   //**************************************************************************
     var merge = javaxt.dhtml.utils.merge;
-    var createTable = javaxt.dhtml.utils.createTable;
-    var createDashboardItem = bluewave.utils.createDashboardItem;
-    var createSlider = bluewave.utils.createSlider;
-    var addTextEditor = bluewave.utils.addTextEditor;
     var round = javaxt.dhtml.utils.round;
+    var createTable = javaxt.dhtml.utils.createTable;
+    var createElement = javaxt.dhtml.utils.createElement;
+
+    var createEditor = bluewave.utils.createEditor;
+    var createSlider = bluewave.utils.createSlider;
     var getType = bluewave.chart.utils.getType;
     var parseData = bluewave.utils.parseData;
 

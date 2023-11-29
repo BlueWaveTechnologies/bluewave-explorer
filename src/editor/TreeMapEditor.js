@@ -22,11 +22,8 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
         }
     };
 
-    var panel;
+    var editor;
     var inputData = [];
-    var previewArea;
-    var treeMapChart;
-    var optionsDiv;
     var treeMapInputs = {};
     var chartConfig = {};
     var styleEditor;
@@ -42,50 +39,19 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
         config = merge(config, defaultConfig);
         chartConfig = config.chart;
 
-      //Create table with 2 columns
-        let table = createTable(parent);
-        var tr = table.addRow();
-        me.el = table;
-        var td;
 
-
-      //Left column (chart options)
-        td = tr.addColumn();
-        optionsDiv = createElement("div", td, "chart-editor-options");
-
-
-      //Right column (chart preview)
-        td = tr.addColumn("chart-editor-preview");
-        td.style.width = "100%";
-        td.style.height = "100%";
-
-
-      //Create panel in the right column
-        panel = createDashboardItem(td,{
-            width: "100%",
-            height: "100%",
-            title: "Untitled",
-            settings: true
+        editor = createEditor(parent, {
+            onSettings: function(){
+                if (chartConfig) editStyle();
+            },
+            onResize: function(){
+                createPreview();
+            },
+            onTitleChange: function(title){
+                chartConfig.chartTitle = title;
+            }
         });
-        previewArea = panel.innerDiv;
-        treeMapChart = new bluewave.charts.TreeMapChart(previewArea, {});
-        treeMapChart.onClick = function(rect, data){
-            editGroup(treeMapChart.getGroup(data.group));
-        };
-        panel.el.className = "";
-
-
-      //Allow users to change the title associated with the chart
-        addTextEditor(panel.title, function(title){
-            panel.title.innerHTML = title;
-            chartConfig.chartTitle = title;
-        });
-
-
-      //Watch for settings
-        panel.settings.onclick = function(){
-            if (chartConfig) editStyle();
-        };
+        me.el = editor.el;
     };
 
 
@@ -117,10 +83,10 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
 
       //Set title
         if (chartConfig.chartTitle){
-            panel.title.innerHTML = chartConfig.chartTitle;
+            editor.setTitle(chartConfig.chartTitle);
         }
 
-        createOptions(optionsDiv);
+        createOptions(editor.getLeftPanel());
         createPreview();
     };
 
@@ -131,10 +97,7 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
     this.clear = function(){
         inputData = [];
         chartConfig = {};
-        panel.title.innerHTML = "Untitled";
-        optionsDiv.innerHTML = "";
-
-        if (treeMapChart) treeMapChart.clear();
+        editor.clear();
     };
 
 
@@ -153,7 +116,7 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
   //** getChart
   //**************************************************************************
     this.getChart = function(){
-        return previewArea;
+        return editor.getChartArea();
     };
 
 
@@ -165,7 +128,7 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
    */
     this.renderChart = function(parent){
         var chart = new bluewave.charts.TreeMapChart(parent, {});
-        chart.update(chartConfig, inputData[0]);
+        createPreview(chart);
         return chart;
     };
 
@@ -192,7 +155,9 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
             });
 
             var type = getType(values);
-            if (type=="string") keyFields.push(field);
+            if (type=="string") keyFields.push({
+                name: field, values: new Set(values).size
+            });
             if (type=="number" || type=="currency") valueFields.push(field);
             if (type=="string") groupByFields.push(field);
 
@@ -208,8 +173,11 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
 
 
       //Populate key pulldown
+        keyFields.sort(function(a, b){
+            return a.values-b.values;
+        });
         keyFields.forEach((field)=>{
-            treeMapInputs.key.add(field,field);
+            treeMapInputs.key.add(field.name,field.name);
         });
 
 
@@ -218,6 +186,7 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
             treeMapInputs.value.add(field,field);
         });
 
+
       //Populate groupBy pulldown
         treeMapInputs.groupBy.add("", "");
         groupByFields.forEach((field)=>{
@@ -225,13 +194,17 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
         });
 
 
-      //Select default options
-        if (!chartConfig.key) chartConfig.key = keyFields[0];
+      //Select default key value
+        if (!chartConfig.key) chartConfig.key = keyFields[0].name;
         treeMapInputs.key.setValue(chartConfig.key, true);
 
+
+      //Select default value field
         if (!chartConfig.value) chartConfig.value = valueFields[0];
         treeMapInputs.value.setValue(chartConfig.value, true);
 
+
+      //Select default group by field
         if (chartConfig.groupBy){
             treeMapInputs.groupBy.setValue(chartConfig.groupBy, true);
         }
@@ -265,17 +238,37 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
   //**************************************************************************
   //** createPreview
   //**************************************************************************
-    var createPreview = function(){
+    var createPreview = function(chart){
         if (legend) legend.hide();
+
+
+        if (chart){
+            chart.clear();
+        }
+        else{
+            var previewArea = editor.getChartArea();
+            previewArea.innerHTML = "";
+            chart = new bluewave.charts.TreeMapChart(previewArea, {});
+            chart.getValueLabel = function(value, data){
+                var val = bluewave.chart.utils.parseFloat(value);
+                if (isNaN(val)) return value;
+                return formatNumber(round(val, 2));
+            };
+            chart.onClick = function(rect, data){
+                editGroup(chart.getGroup(data.group));
+            };
+        }
+
+
 
         if (chartConfig.key && chartConfig.value){
             var data = inputData[0];
-            treeMapChart.update(chartConfig, data, function(){
+            chart.update(chartConfig, data, function(){
 
 
               //Render legend as needed
                 if (chartConfig.shape==="circle"){
-                    var groups = treeMapChart.getGroups();
+                    var groups = chart.getGroups();
                     var groupNames = Object.keys(groups);
                     if (groupNames.length>1){
                         var rows = [];
@@ -297,7 +290,7 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
                             return b.value - a.value;
                         });
 
-                        legend = createLegend(previewArea);
+                        legend = createLegend(editor.getChartArea());
                         rows.forEach((row)=>{
                             legend.addItem(row.key, row.color);
                         });
@@ -509,14 +502,15 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
   //** Utils
   //**************************************************************************
     var merge = javaxt.dhtml.utils.merge;
-    var onRender = javaxt.dhtml.utils.onRender;
+    var round = javaxt.dhtml.utils.round;
     var createTable = javaxt.dhtml.utils.createTable;
     var createElement = javaxt.dhtml.utils.createElement;
-    var createDashboardItem = bluewave.utils.createDashboardItem;
+
+    var createEditor = bluewave.utils.createEditor;
     var createLegend = bluewave.utils.createLegend;
-    var addTextEditor = bluewave.utils.addTextEditor;
     var getType = bluewave.chart.utils.getType;
     var parseData = bluewave.utils.parseData;
+    var formatNumber = bluewave.utils.formatNumber;
 
     init();
 };

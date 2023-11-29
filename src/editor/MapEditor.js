@@ -30,8 +30,7 @@ if(!bluewave.editor) bluewave.editor={};
 
     var chartConfig = {};
 
-    var panel;
-    var previewArea;
+    var editor;
     var mapChart;
     var inputData = [];
 
@@ -54,18 +53,27 @@ if(!bluewave.editor) bluewave.editor={};
 
 
 
-      //Create table with 2 columns
-        let table = createTable(parent);
-        var tr = table.addRow();
-        me.el = table;
-        var td;
+      //Create editor
+        editor = createEditor(parent, {
+            onSettings: function(){
+                if (chartConfig) editStyle(chartConfig.mapType, chartConfig.mapLevel);
+            },
+            onResize: function(){
+                //createPreview();
+            },
+            onTitleChange: function(title){
+                chartConfig.chartTitle = title;
+            }
+        });
+        me.el = editor.el;
 
 
-      //Create left panel with map options
-        td = tr.addColumn();
-        let div = document.createElement("div");
-        div.className = "chart-editor-options";
-        td.appendChild(div);
+
+
+      //Populate left panel with map options
+        let div = createElement("div", editor.getLeftPanel());
+        //div.className = "chart-editor-options";
+
         createInput(div,"mapType","Map Type",showHideDropDowns);
         createInput(div,"mapLevel","Map Level",showHideDropDowns);
         createInput(div,"pointData", "Point Data",showHideDropDowns);
@@ -76,34 +84,10 @@ if(!bluewave.editor) bluewave.editor={};
         createInput(div,"mapProjectionName","Projection",createMapPreview);
 
 
-      //Create main panel with map
-        td = tr.addColumn();
-        td.className = "chart-editor-preview";
-        td.style.width = "100%";
-        td.style.height = "100%";
-        panel = createDashboardItem(td,{
-            width: "100%",
-            height: "100%",
-            title: "Untitled",
-            settings: true
-        });
-        panel.el.className = "";
-        previewArea = panel.innerDiv;
+        var previewArea = editor.getChartArea();
+        previewArea.innerHTML = "";
         mapChart = new bluewave.charts.MapChart(previewArea, chartConfig);
         mapChart.disablePan();
-
-
-      //Allow users to change the title associated with the chart
-        addTextEditor(panel.title, function(title){
-            panel.title.innerHTML = title;
-            chartConfig.chartTitle = title;
-        });
-
-
-      //Watch for settings
-        panel.settings.onclick = function(){
-            if (chartConfig) editStyle(chartConfig.mapType, chartConfig.mapLevel);
-        };
     };
 
 
@@ -113,7 +97,8 @@ if(!bluewave.editor) bluewave.editor={};
     this.clear = function(){
         inputData = [];
         chartConfig = {};
-        panel.title.innerHTML = "Untitled";
+        editor.setTitle("Untitled");
+
 
       //Clear map inputs
         if (mapInputs){
@@ -171,8 +156,18 @@ if(!bluewave.editor) bluewave.editor={};
 
       //Set title
         if (chartConfig.chartTitle){
-            panel.title.innerHTML = chartConfig.chartTitle;
+            editor.setTitle(chartConfig.chartTitle);
         }
+
+/*
+      //Set title
+        if (chartConfig.chartTitle){
+            editor.setTitle(chartConfig.chartTitle);
+        }
+
+        createOptions(editor.getLeftPanel());
+ */
+
 
 
         chartConfig.mapLevel = getMapLevel(chartConfig);
@@ -281,13 +276,11 @@ if(!bluewave.editor) bluewave.editor={};
     var createInput = function(parent, chartConfigRef, displayName, onChange, inputType){
         if (!inputType) inputType = chartConfigRef;
 
-        var row = document.createElement("div");
-        parent.appendChild(row);
+        var row = createElement("div", parent);
         addShowHide(row);
 
-        var label = document.createElement("label");
+        var label = createElement("label", row);
         label.innerText = displayName + ":";
-        row.appendChild(label);
 
         var input = new javaxt.dhtml.ComboBox(row, {
             style: config.style.combobox,
@@ -408,7 +401,7 @@ if(!bluewave.editor) bluewave.editor={};
   //** getChart
   //**************************************************************************
     this.getChart = function(){
-        return previewArea;
+        return editor.getChartArea();
     };
 
 
@@ -456,7 +449,7 @@ if(!bluewave.editor) bluewave.editor={};
                     name: "backgroundColor",
                     label: "Background",
                     type: new javaxt.dhtml.ComboBox(
-                        document.createElement("div"),
+                        createElement("div"),
                         {
                             style: config.style.combobox
                         }
@@ -466,7 +459,7 @@ if(!bluewave.editor) bluewave.editor={};
                     name: "landColor",
                     label: "Land",
                     type: new javaxt.dhtml.ComboBox(
-                        document.createElement("div"),
+                        createElement("div"),
                         {
                             style: config.style.combobox
                         }
@@ -503,7 +496,7 @@ if(!bluewave.editor) bluewave.editor={};
                             name: "color",
                             label: "Color",
                             type: new javaxt.dhtml.ComboBox(
-                                document.createElement("div"),
+                                createElement("div"),
                                 {
                                     style: config.style.combobox
                                 }
@@ -528,7 +521,7 @@ if(!bluewave.editor) bluewave.editor={};
                              name: "outlineColor",
                              label: "Border Color",
                              type: new javaxt.dhtml.ComboBox(
-                                 document.createElement("div"),
+                                 createElement("div"),
                                  {
                                      style: config.style.combobox
                                  }
@@ -1710,14 +1703,12 @@ if(!bluewave.editor) bluewave.editor={};
   //** Utils
   //**************************************************************************
     var merge = javaxt.dhtml.utils.merge;
-    var createTable = javaxt.dhtml.utils.createTable;
     var isArray = javaxt.dhtml.utils.isArray;
     var addShowHide = javaxt.dhtml.utils.addShowHide;
+    var createElement = javaxt.dhtml.utils.createElement;
 
-    var createDashboardItem = bluewave.utils.createDashboardItem;
-    var addTextEditor = bluewave.utils.addTextEditor;
+    var createEditor = bluewave.utils.createEditor;
     var createSlider = bluewave.utils.createSlider;
-
     var getType = bluewave.chart.utils.getType;
     var parseData = bluewave.utils.parseData;
     var getNaturalBreaks = bluewave.chart.utils.getNaturalBreaks;

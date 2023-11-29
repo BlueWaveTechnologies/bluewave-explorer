@@ -28,12 +28,8 @@ bluewave.editor.PieEditor = function(parent, config) {
         }
     };
 
-    var panel;
+    var editor;
     var inputData = [];
-
-    var previewArea;
-    var pieChart;
-    var optionsDiv;
     var pieInputs = {};
     var chartConfig = {};
     var styleEditor;
@@ -49,51 +45,18 @@ bluewave.editor.PieEditor = function(parent, config) {
         chartConfig = config.chart;
 
 
-      //Create table with 2 columns
-        var table = createTable(parent);
-        var tr = table.addRow();
-        var td;
-        me.el = table;
-
-
-      //Create chart options
-        td = tr.addColumn();
-        let div = document.createElement("div");
-        div.className = "chart-editor-options";
-        td.appendChild(div);
-        optionsDiv = div;
-
-
-      //Create chart preview
-        td = tr.addColumn();
-        td.className = "chart-editor-preview";
-        td.style.width = "100%";
-        td.style.height = "100%";
-        panel = createDashboardItem(td,{
-            width: "100%",
-            height: "100%",
-            title: "Untitled",
-            settings: true
+        editor = createEditor(parent, {
+            onSettings: function(){
+                if (chartConfig) editStyle();
+            },
+            onResize: function(){
+                createPreview();
+            },
+            onTitleChange: function(title){
+                chartConfig.chartTitle = title;
+            }
         });
-        previewArea = panel.innerDiv;
-        panel.el.className = "";
-
-
-      //Allow users to change the title associated with the chart
-        addTextEditor(panel.title, function(title){
-            panel.title.innerHTML = title;
-            chartConfig.chartTitle = title;
-        });
-
-
-      //Watch for settings
-        panel.settings.onclick = function(){
-            if (chartConfig) editStyle();
-        };
-
-
-      //Initialize chart
-        pieChart = new bluewave.charts.PieChart(previewArea, {});
+        me.el = editor.el;
     };
 
 
@@ -209,10 +172,10 @@ bluewave.editor.PieEditor = function(parent, config) {
 
       //Set title
         if (chartConfig.chartTitle){
-            panel.title.innerHTML = chartConfig.chartTitle;
+            editor.setTitle(chartConfig.chartTitle);
         }
 
-        createOptions(optionsDiv);
+        createOptions(editor.getLeftPanel());
         createPreview();
     };
 
@@ -223,10 +186,7 @@ bluewave.editor.PieEditor = function(parent, config) {
     this.clear = function(){
         inputData = [];
         chartConfig = {};
-        panel.title.innerHTML = "Untitled";
-        optionsDiv.innerHTML = "";
-
-        if (pieChart) pieChart.clear();
+        editor.clear();
     };
 
 
@@ -244,7 +204,7 @@ bluewave.editor.PieEditor = function(parent, config) {
   //** getChart
   //**************************************************************************
     this.getChart = function(){
-        return previewArea;
+        return editor.getChartArea();
     };
 
 
@@ -256,7 +216,7 @@ bluewave.editor.PieEditor = function(parent, config) {
    */
     this.renderChart = function(parent){
         var chart = new bluewave.charts.PieChart(parent, {});
-        chart.update(chartConfig, inputData);
+        createPreview(chart);
         return chart;
     };
 
@@ -415,10 +375,18 @@ bluewave.editor.PieEditor = function(parent, config) {
   //**************************************************************************
   //** createPreview
   //**************************************************************************
-    var createPreview = function(){
-        onRender(previewArea, function(){
-            pieChart.update(chartConfig, inputData);
-        });
+    var createPreview = function(chart){
+
+        if (chart){
+            chart.clear();
+        }
+        else{
+            var previewArea = editor.getChartArea();
+            previewArea.innerHTML = "";
+            chart = new bluewave.charts.PieChart(previewArea, {});
+        }
+
+        chart.update(chartConfig, inputData);
     };
 
 
@@ -535,6 +503,7 @@ bluewave.editor.PieEditor = function(parent, config) {
         });
 
 
+      //Set initial value for the color field
         colorField.setValue(JSON.stringify(chartConfig.colors));
 
 
@@ -573,7 +542,7 @@ bluewave.editor.PieEditor = function(parent, config) {
         maxSliceOptField.setValue(showOther===true ? true : false);
 
         var numSlices = inputData[0].length;
-        if (pieChart) numSlices = pieChart.getNumSlices();
+        //if (pieChart) numSlices = pieChart.getNumSlices();
         createSlider("maximumSlices", form, "", 1, numSlices, 1);
         var maximumSlices = parseInt(chartConfig.maximumSlices);
         if (isNaN(maximumSlices) || maximumSlices<1 || maximumSlices>numSlices){
@@ -635,11 +604,10 @@ bluewave.editor.PieEditor = function(parent, config) {
   //** Utils
   //**************************************************************************
     var merge = javaxt.dhtml.utils.merge;
-    var onRender = javaxt.dhtml.utils.onRender;
     var createTable = javaxt.dhtml.utils.createTable;
-    var createDashboardItem = bluewave.utils.createDashboardItem;
+
+    var createEditor = bluewave.utils.createEditor;
     var createSlider = bluewave.utils.createSlider;
-    var addTextEditor = bluewave.utils.addTextEditor;
     var getType = bluewave.chart.utils.getType;
     var parseData = bluewave.utils.parseData;
 

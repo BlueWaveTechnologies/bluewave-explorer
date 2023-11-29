@@ -21,8 +21,7 @@ bluewave.editor.LineEditor = function(parent, config) {
         }
     };
 
-    var panel;
-    var previewArea, optionsDiv;
+    var editor;
     var inputData = [];
     var lineChart;
     var plotInputs = {};
@@ -41,66 +40,18 @@ bluewave.editor.LineEditor = function(parent, config) {
         if (!config) config = {};
         config = merge(config, defaultConfig);
 
-        let table = createTable(parent);
-        me.el = table;
-
-        var tr = table.addRow();
-        var td;
-
-
-      //Create chart options
-        td = tr.addColumn();
-        td.style.height = "100%";
-        var outerDiv = createElement("div", td, "chart-editor-options");
-        outerDiv.style.height = "100%";
-        outerDiv.style.position = "relative";
-        outerDiv.style.overflow = "hidden";
-        outerDiv.style.overflowY = "auto";
-
-        optionsDiv = createElement("div", outerDiv);
-        optionsDiv.style.position = "absolute";
-
-
-      //Create chart preview
-        td = tr.addColumn("chart-editor-preview");
-        td.style.width = "100%";
-        td.style.height = "100%";
-
-        var timer;
-        addResizeListener(td, function(){
-            if (timer) clearTimeout(timer);
-            timer = setTimeout(()=>{
-                createLinePreview();
-            },800);
+        editor = createEditor(parent, {
+            onSettings: function(){
+                editChart();
+            },
+            onResize: function(){
+                createPreview();
+            },
+            onTitleChange: function(title){
+                chartConfig.chartTitle = title;
+            }
         });
-
-        var outerDiv = createElement("div", td);
-        outerDiv.style.height = "100%";
-        outerDiv.style.position = "relative";
-        outerDiv.style.overflow = "hidden";
-
-        panel = createDashboardItem(outerDiv,{
-            width: "100%",
-            height: "100%",
-            title: "Untitled",
-            settings: true
-        });
-        previewArea = panel.innerDiv;
-        panel.el.className = "";
-        panel.el.style.position = "absolute";
-
-
-      //Allow users to change the title associated with the chart
-        addTextEditor(panel.title, function(title){
-            panel.title.innerHTML = title;
-            chartConfig.chartTitle = title;
-        });
-
-
-      //Watch for settings
-        panel.settings.onclick = function(){
-            editChart();
-        };
+        me.el = editor.el;
     };
 
 
@@ -156,14 +107,14 @@ bluewave.editor.LineEditor = function(parent, config) {
 
       //Set title
         if (chartConfig.chartTitle){
-            panel.title.innerHTML = chartConfig.chartTitle;
+            editor.setTitle(chartConfig.chartTitle);
         }
 
 
       //Enable tooltip
         chartConfig.showTooltip = true;
 
-        createForm(optionsDiv);
+        createForm(editor.getLeftPanel());
         createOptions();
     };
 
@@ -176,9 +127,6 @@ bluewave.editor.LineEditor = function(parent, config) {
         lineMap = [];
         chartConfig = {};
         plotInputs = {};
-        panel.title.innerHTML = "Untitled";
-        optionsDiv.innerHTML = "";
-
 
         if (colorPicker) colorPicker.hide();
         //if (styleEditor) styleEditor.hide();
@@ -187,7 +135,8 @@ bluewave.editor.LineEditor = function(parent, config) {
             lineChart.clear();
             lineChart = null;
         }
-        previewArea.innerHTML = "";
+
+        editor.clear();
     };
 
 
@@ -205,7 +154,7 @@ bluewave.editor.LineEditor = function(parent, config) {
   //** getChart
   //**************************************************************************
     this.getChart = function(){
-        return previewArea;
+        return editor.getChartArea();
     };
 
 
@@ -217,7 +166,7 @@ bluewave.editor.LineEditor = function(parent, config) {
    */
     this.renderChart = function(parent){
         var chart = new bluewave.charts.LineChart(parent, {});
-        createLinePreview(chart);
+        createPreview(chart);
         return chart;
     };
 
@@ -261,7 +210,7 @@ bluewave.editor.LineEditor = function(parent, config) {
             }
         }
 
-        createLinePreview();
+        createPreview();
     };
 
 
@@ -381,7 +330,7 @@ bluewave.editor.LineEditor = function(parent, config) {
             }
 
 
-            createLinePreview();
+            createPreview();
         };
     };
 
@@ -421,16 +370,16 @@ bluewave.editor.LineEditor = function(parent, config) {
 
 
   //**************************************************************************
-  //** createLinePreview
+  //** createPreview
   //**************************************************************************
-    var createLinePreview = function(chart){
-
+    var createPreview = function(chart){
 
 
         if (chart){
             chart.clear();
         }
         else{
+            var previewArea = editor.getChartArea();
             previewArea.innerHTML = "";
             chart = new bluewave.charts.LineChart(previewArea, chartConfig);
             chart.onClick = function(el, lineID){
@@ -442,7 +391,6 @@ bluewave.editor.LineEditor = function(parent, config) {
             //chart.setConfig(chartConfig);
             lineChart = chart;
         }
-
 
 
 
@@ -798,7 +746,7 @@ bluewave.editor.LineEditor = function(parent, config) {
             var yMin = bluewave.chart.utils.parseFloat(yMinDropdown.getText());
             if (!isNaN(yMin)) chartConfig.yMin = yMin;
 
-            createLinePreview();
+            createPreview();
         };
 
 
@@ -1103,7 +1051,7 @@ bluewave.editor.LineEditor = function(parent, config) {
 
 
           //Render updates
-            createLinePreview();
+            createPreview();
         };
 
 
@@ -1139,12 +1087,10 @@ bluewave.editor.LineEditor = function(parent, config) {
   //**************************************************************************
     var merge = javaxt.dhtml.utils.merge;
     var addShowHide = javaxt.dhtml.utils.addShowHide;
-    var createTable = javaxt.dhtml.utils.createTable;
     var createElement = javaxt.dhtml.utils.createElement;
-    var addResizeListener = javaxt.dhtml.utils.addResizeListener;
-    var createDashboardItem = bluewave.utils.createDashboardItem;
+
+    var createEditor = bluewave.utils.createEditor;
     var createSlider = bluewave.utils.createSlider;
-    var addTextEditor = bluewave.utils.addTextEditor;
     var getStyleEditor = bluewave.utils.getStyleEditor;
     var getType = bluewave.chart.utils.getType;
     var parseData = bluewave.utils.parseData;
