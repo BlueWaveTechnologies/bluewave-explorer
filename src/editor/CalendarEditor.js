@@ -15,22 +15,14 @@ bluewave.editor.CalendarEditor = function(parent, config) {
         panel: {
 
         },
-        colors: {
-            green: ["#fff","#ebf5dc","#cbe9a5","#2a671a"],
-            blue: ["#fff","#aebfee","#587bdd","#1d3c90"],
-            orange: ["#fff","#fbdc77","#f8c82c","#b78e06"]
-        },
+        colors: bluewave.utils.getColorGradients(),
         chart: {
-            cellSize: 13,
             showTooltip: true
         }
     };
 
-    var panel;
+    var editor;
     var inputData = [];
-    var previewArea;
-    var calendarChart;
-    var optionsDiv;
     var calendarInputs = {};
     var chartConfig = {};
     var styleEditor;
@@ -42,53 +34,24 @@ bluewave.editor.CalendarEditor = function(parent, config) {
     var init = function(){
 
         if (!config) config = {};
-        defaultConfig.chart.colors = defaultConfig.colors.blue;
+        defaultConfig.chart.colors = defaultConfig.colors.green.map((x) => x).reverse();
         config = merge(config, defaultConfig);
         chartConfig = config.chart;
 
 
-      //Create table with 2 columns
-        var table = createTable(parent);
-        var tr = table.addRow();
-        var td;
-        me.el = table;
-
-
-      //Create chart options
-        td = tr.addColumn();
-        let div = document.createElement("div");
-        div.className = "chart-editor-options";
-        td.appendChild(div);
-        optionsDiv = div;
-
-
-      //Create chart preview
-        td = tr.addColumn();
-        td.className = "chart-editor-preview";
-        td.style.width = "100%";
-        td.style.height = "100%";
-        panel = createDashboardItem(td,{
-            width: "100%",
-            height: "100%",
-            title: "Untitled",
-            settings: true
+      //Create editor
+        editor = createEditor(parent, {
+            onSettings: function(){
+                if (chartConfig) editStyle();
+            },
+            onResize: function(){
+                createPreview();
+            },
+            onTitleChange: function(title){
+                chartConfig.chartTitle = title;
+            }
         });
-        previewArea = panel.innerDiv;
-        calendarChart = new bluewave.charts.CalendarChart(previewArea, {});
-        panel.el.className = "";
-
-
-      //Allow users to change the title associated with the chart
-        addTextEditor(panel.title, function(title){
-            panel.title.innerHTML = title;
-            chartConfig.chartTitle = title;
-        });
-
-
-      //Watch for settings
-        panel.settings.onclick = function(){
-            if (chartConfig) editStyle();
-        };
+        me.el = editor.el;
     };
 
 
@@ -121,10 +84,10 @@ bluewave.editor.CalendarEditor = function(parent, config) {
 
       //Set title
         if (chartConfig.chartTitle){
-            panel.title.innerHTML = chartConfig.chartTitle;
+            editor.setTitle(chartConfig.chartTitle);
         }
 
-        createOptions(optionsDiv);
+        createOptions(editor.getLeftPanel());
         createPreview();
     };
 
@@ -135,10 +98,7 @@ bluewave.editor.CalendarEditor = function(parent, config) {
     this.clear = function(){
         inputData = [];
         chartConfig = {};
-        panel.title.innerHTML = "Untitled";
-        optionsDiv.innerHTML = "";
-
-        if (calendarChart) calendarChart.clear();
+        editor.clear();
     };
 
 
@@ -157,7 +117,7 @@ bluewave.editor.CalendarEditor = function(parent, config) {
   //** getChart
   //**************************************************************************
     this.getChart = function(){
-        return previewArea;
+        return editor.getChartArea();
     };
 
 
@@ -169,7 +129,7 @@ bluewave.editor.CalendarEditor = function(parent, config) {
    */
     this.renderChart = function(parent){
         var chart = new bluewave.charts.CalendarChart(parent, {});
-        chart.update(chartConfig, inputData[0]);
+        createPreview(chart);
         return chart;
     };
 
@@ -199,12 +159,11 @@ bluewave.editor.CalendarEditor = function(parent, config) {
 
 
       //Create form inputs
-        var table = createTable();
-        var tbody = table.firstChild;
+        var table = createTable(parent);
         table.style.height = "";
-        parent.appendChild(table);
-        createDropdown(tbody,"Date","date");
-        createDropdown(tbody,"Value","value");
+
+        createDropdown(table,"Date","date");
+        createDropdown(table,"Value","value");
 
 
       //Populate date pulldown
@@ -238,21 +197,13 @@ bluewave.editor.CalendarEditor = function(parent, config) {
   //**************************************************************************
   //** createDropdown
   //**************************************************************************
-    var createDropdown = function(tbody,displayName,inputType){
-        var tr, td;
+    var createDropdown = function(table,displayName,inputType){
+        var td;
 
-        tr = document.createElement("tr");
-        tbody.appendChild(tr);
-        td = document.createElement("td");
-        tr.appendChild(td);
+        td = table.addRow().addColumn();
         td.innerHTML= displayName+":";
 
-        tr = document.createElement("tr");
-        tbody.appendChild(tr);
-        td = document.createElement("td");
-        tr.appendChild(td);
-
-
+        td = table.addRow().addColumn();
         calendarInputs[inputType] = new javaxt.dhtml.ComboBox(td, {
             style: config.style.combobox,
             readOnly: true
@@ -268,10 +219,22 @@ bluewave.editor.CalendarEditor = function(parent, config) {
   //**************************************************************************
   //** createPreview
   //**************************************************************************
-    var createPreview = function(){
+    var createPreview = function(chart){
+
         if (chartConfig.date && chartConfig.value){
+
+            if (chart){
+                chart.clear();
+            }
+            else{
+                var previewArea = editor.getChartArea();
+                previewArea.innerHTML = "";
+                chart = new bluewave.charts.CalendarChart(previewArea, {});
+            }
+
+
             var data = inputData[0];
-            calendarChart.update(chartConfig, data);
+            chart.update(chartConfig, data);
         }
     };
 
@@ -299,13 +262,11 @@ bluewave.editor.CalendarEditor = function(parent, config) {
         body.innerHTML = "";
 
 
-        var colorField = new javaxt.dhtml.ComboBox(
-            document.createElement("div"),
-            {
-                style: config.style.combobox
-            }
-        );
 
+        var colorField = bluewave.utils.createColorField({
+            colors: config.colors,
+            style: config.style
+        });
 
 
         var form = new javaxt.dhtml.Form(body, {
@@ -349,45 +310,17 @@ bluewave.editor.CalendarEditor = function(parent, config) {
                             ]
                         }
                     ]
-                },
-                {
-                  group: "Graph",
-                  items: [
-                        {
-                            name: "cellSize",
-                            label: "Cell Size",
-                            type: "text"
-
-                        }
-                    ]
                 }
 
 
             ]
         });
 
-      //Add color options
-        for (var key in config.colors) {
-            if (config.colors.hasOwnProperty(key)){
-                colorField.add(key, JSON.stringify(config.colors[key]));
-            }
-        }
 
-      //Set initial value for the color
-        if (chartConfig.colors){
-            var color = chartConfig.colors;
-            colorField.getOptions().every(function(d){
-                var key = d.text;
-                var val = d.value;
-                if (color==key || JSON.stringify(color)==val){
-                    colorField.setValue(key);
-                    return false;
-                }
-                return true;
-            });
-        }
-        else{
-            colorField.setValue("blue");
+      //Set initial value for the color field
+        colorField.setValue(JSON.stringify(chartConfig.colors));
+        if (!colorField.getValue()){
+            colorField.setValue(JSON.stringify(chartConfig.colors.map((x) => x).reverse()));
         }
 
 
@@ -396,16 +329,11 @@ bluewave.editor.CalendarEditor = function(parent, config) {
         var dayLabel = chartConfig.dayLabel;
         dayLabelField.setValue(dayLabel===true ? true : false);
 
+
       //Set initial value for Year label
         var yearLabelField = form.findField("yearLabel");
         var yearLabel = chartConfig.yearLabel;
         yearLabelField.setValue(yearLabel===true ? true : false);
-
-      //Set initial value for Cell Size
-        var cellSizeField = form.findField("cellSize");
-        var cellSizeValue = chartConfig.cellSize;
-        if (isNaN(cellSizeValue) || cellSizeValue<1) cellSizeValue = 13;
-        cellSizeField.setValue(cellSizeValue);
 
 
 
@@ -421,12 +349,7 @@ bluewave.editor.CalendarEditor = function(parent, config) {
 
             chartConfig.dayLabel = settings.dayLabel;
             chartConfig.yearLabel = settings.yearLabel;
-
-            var cellSize = settings.cellSize;
-            if (isNaN(cellSize) || cellSize<1) cellSize = 13;
-            chartConfig.cellSize = cellSize;
-
-            chartConfig.colors = JSON.parse(settings.color);
+            chartConfig.colors = JSON.parse(settings.color).reverse();
 
             createPreview();
         };
@@ -443,11 +366,11 @@ bluewave.editor.CalendarEditor = function(parent, config) {
   //** Utils
   //**************************************************************************
     var merge = javaxt.dhtml.utils.merge;
-    var onRender = javaxt.dhtml.utils.onRender;
+    var clone = javaxt.dhtml.utils.merge;
     var createTable = javaxt.dhtml.utils.createTable;
-    var createDashboardItem = bluewave.utils.createDashboardItem;
-    var createSlider = bluewave.utils.createSlider;
-    var addTextEditor = bluewave.utils.addTextEditor;
+    var createElement = javaxt.dhtml.utils.createElement;
+
+    var createEditor = bluewave.utils.createEditor;
     var getType = bluewave.chart.utils.getType;
     var parseData = bluewave.utils.parseData;
 
