@@ -116,6 +116,22 @@ window.onload = function() {
     var explorer = new bluewave.Explorer(document.body);
     explorer.update();
 
+
+  //Create arrow/hint
+    var hint = javaxt.dhtml.utils.createElement("div", document.body, "hint-arrow");
+    hint.style.opacity = 0;
+    setTimeout(()=>{
+        hint.style.opacity = 1;
+    }, 300);
+
+
+  //Show/hide arrow as nodes are added or removed from explorer
+    explorer.onChange = function(){
+        var numNodes = Object.keys(explorer.getNodes()).length;
+        if (numNodes===0) hint.style.opacity = 1;
+        else hint.style.opacity = 0;
+    };
+
 };
 </script>
 

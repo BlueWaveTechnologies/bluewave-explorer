@@ -1,4 +1,5 @@
 @import url(https://fonts.googleapis.com/css?family=Open+Sans);
+@import url('https://fonts.googleapis.com/css2?family=Kalam:wght@300&display=swap');
 
 html, body {
     height:100%;
@@ -12,4 +13,28 @@ body {
 
 body, textarea, input, select, td, th {
     font-family: 'Open Sans',helvetica,arial,verdana,sans-serif;
+}
+
+
+/**************************************************************************/
+/** Hint Arrow and Label
+/**************************************************************************/
+
+.hint-arrow {
+    position: absolute;
+    left: 42%;
+    top: 30%;
+    background: url(images/arrow.png) no-repeat;
+    width: 85px;
+    height: 120px;
+    color: #ef5646;
+    font-size: 32px;
+    font-family: 'Kalam', cursive;
+    transition: 1.2s;
+}
+.hint-arrow:after {
+    content:"Drag and drop csv or xlsx here";
+    line-height: 225px;
+    margin: 0 0 0 82px;
+    white-space: nowrap;
 }
