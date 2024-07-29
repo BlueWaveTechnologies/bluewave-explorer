@@ -30,6 +30,7 @@ bluewave.editor.PieEditor = function(parent, config) {
 
     var editor;
     var inputData = [];
+    var numSlices = 0;
     var pieInputs = {};
     var chartConfig = {};
     var styleEditor;
@@ -168,6 +169,9 @@ bluewave.editor.PieEditor = function(parent, config) {
         }
 
 
+        var colors = chartConfig.colors ? JSON.parse(chartConfig.colors) : null;
+        if (!colors && config.colors) colors = Object.values(config.colors)[0];
+        if (colors) chartConfig.colors = colors;
 
 
       //Set title
@@ -185,6 +189,7 @@ bluewave.editor.PieEditor = function(parent, config) {
   //**************************************************************************
     this.clear = function(){
         inputData = [];
+        numSlices = 0;
         chartConfig = {};
         editor.clear();
     };
@@ -377,6 +382,7 @@ bluewave.editor.PieEditor = function(parent, config) {
   //**************************************************************************
     var createPreview = function(chart){
 
+      //Clear the chart area
         if (chart){
             chart.clear();
         }
@@ -386,6 +392,13 @@ bluewave.editor.PieEditor = function(parent, config) {
             chart = new bluewave.charts.PieChart(previewArea, {});
         }
 
+
+      //Calculate total slices and set max to render
+        numSlices = createKeyValueDataset(inputData[0], chartConfig.pieKey, chartConfig.pieValue).length;
+        chartConfig.maximumSlices = getMaxSlices(chartConfig.maximumSlices);
+
+
+      //Render chart
         chart.update(chartConfig, inputData);
     };
 
@@ -541,31 +554,17 @@ bluewave.editor.PieEditor = function(parent, config) {
         var showOther = chartConfig.showOther;
         maxSliceOptField.setValue(showOther===true ? true : false);
 
-        var numSlices = inputData[0].length;
-        //if (pieChart) numSlices = pieChart.getNumSlices();
+
         createSlider("maximumSlices", form, "", 1, numSlices, 1);
-        var maximumSlices = parseInt(chartConfig.maximumSlices);
-        if (isNaN(maximumSlices) || maximumSlices<1 || maximumSlices>numSlices){
-            maximumSlices = numSlices;
-        }
-        form.findField("maximumSlices").setValue(maximumSlices);
+        form.findField("maximumSlices").setValue(getMaxSlices(chartConfig.maximumSlices));
 
 
       //Process onChange events
         form.onChange = function(){
             var settings = form.getData();
             chartConfig.pieCutout = settings.cutout/100;
-
-
             chartConfig.piePadding = (settings.padding*maxPadding)/100;
-
-
-            var maximumSlices = parseInt(settings.maximumSlices);
-            if (isNaN(maximumSlices) || maximumSlices<1 || maximumSlices>numSlices){
-                maximumSlices = numSlices;
-            }
-            chartConfig.maximumSlices = maximumSlices;
-
+            chartConfig.maximumSlices = getMaxSlices(settings.maximumSlices);
 
             if (settings.labels==="true") {
                 settings.labels = true;
@@ -587,16 +586,27 @@ bluewave.editor.PieEditor = function(parent, config) {
             chartConfig.showOther = settings.showOther;
 
 
-            chartConfig.colors = JSON.parse(settings.color);
+            var colors = settings.color ? JSON.parse(settings.color) : null;
+            if (colors) chartConfig.colors = colors;
 
             createPreview();
         };
 
 
-
-
         styleEditor.showAt(108,57);
         form.resize();
+    };
+
+
+  //**************************************************************************
+  //** getMaxSlices
+  //**************************************************************************
+    var getMaxSlices = function(maximumSlices){
+        maximumSlices = parseInt(maximumSlices+"");
+        if (isNaN(maximumSlices) || maximumSlices<1 || maximumSlices>numSlices){
+            maximumSlices = Math.min(numSlices, 10);
+        }
+        return maximumSlices;
     };
 
 
@@ -606,10 +616,13 @@ bluewave.editor.PieEditor = function(parent, config) {
     var merge = javaxt.dhtml.utils.merge;
     var createTable = javaxt.dhtml.utils.createTable;
 
+    var createKeyValueDataset = bluewave.chart.utils.createKeyValueDataset;
+    var getType = bluewave.chart.utils.getType;
+
     var createEditor = bluewave.utils.createEditor;
     var createSlider = bluewave.utils.createSlider;
-    var getType = bluewave.chart.utils.getType;
     var parseData = bluewave.utils.parseData;
+
 
     init();
 };
