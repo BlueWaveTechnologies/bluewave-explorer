@@ -155,11 +155,13 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
             });
 
             var type = getType(values);
-            if (type=="string") keyFields.push({
-                name: field, values: new Set(values).size
-            });
+            if (type=="string" || type==null){
+                keyFields.push({
+                    name: field, values: new Set(values).size
+                });
+                groupByFields.push(field);
+            }
             if (type=="number" || type=="currency") valueFields.push(field);
-            if (type=="string") groupByFields.push(field);
 
         });
 
@@ -195,13 +197,17 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
 
 
       //Select default key value
-        if (!chartConfig.key) chartConfig.key = keyFields[0].name;
-        treeMapInputs.key.setValue(chartConfig.key, true);
+        if (!chartConfig.key && keyFields.length>0){
+            chartConfig.key = keyFields[0].name;
+            treeMapInputs.key.setValue(chartConfig.key, true);
+        }
 
 
       //Select default value field
-        if (!chartConfig.value) chartConfig.value = valueFields[0];
-        treeMapInputs.value.setValue(chartConfig.value, true);
+        if (!chartConfig.value && valueFields.length>0){
+            chartConfig.value = valueFields[0];
+            treeMapInputs.value.setValue(chartConfig.value, true);
+        }
 
 
       //Select default group by field
@@ -366,6 +372,16 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
                             name: "color",
                             label: "Color",
                             type: colorField
+                        },
+                        {
+                            name: "maxItems",
+                            label: "Max Items",
+                            type: "text"
+                        },
+                        {
+                            name: "maxGroups",
+                            label: "Max Groups",
+                            type: "text"
                         }
                     ]
                 },
@@ -433,6 +449,14 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
       //Set initial value for the color field
         colorField.setValue(JSON.stringify(chartConfig.colors));
 
+        var maxItems = parseInt(chartConfig.maxItems+"");
+        var maxItemField = form.findField("maxItems");
+        maxItemField.setValue(isNaN(maxItems) ? "" : maxItems);
+
+        var maxGroups = parseInt(chartConfig.maxGroups+"");
+        var maxGroupField = form.findField("maxGroups");
+        maxGroupField.setValue(isNaN(maxGroups) ? "" : maxGroups);
+
 
       //Set initial value for group label
         var groupLabelField = form.findField("groupLabel");
@@ -462,6 +486,11 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
                 form.showField("groupLabel");
             }
 
+            var maxItems = parseInt(settings.maxItems+"");
+            if (isNaN(maxItems)) maxItems = null;
+
+            var maxGroups = parseInt(settings.maxGroups+"");
+            if (isNaN(maxGroups)) maxGroups = null;
 
             if (settings.groupLabel==="true") settings.groupLabel = true;
             else settings.groupLabel = false;
@@ -472,6 +501,8 @@ bluewave.editor.TreeMapEditor = function(parent, config) {
             if (settings.keyLabel==="true") settings.keyLabel = true;
             else settings.keyLabel = false;
 
+            chartConfig.maxItems = settings.maxItems;
+            chartConfig.maxGroups = settings.maxGroups;
             chartConfig.groupLabel = settings.groupLabel;
             chartConfig.keyLabel = settings.keyLabel;
             chartConfig.valueLabel = settings.valueLabel;
