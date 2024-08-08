@@ -310,8 +310,9 @@
 }
 
 .drawflow-node-title {
-    height: 50px;
-    line-height: 50px;
+    height: 36px;
+    line-height: 36px;
+    color: #707070;
     background-color: #f7f7f7;
     border-bottom: 1px solid #e9e9e9;
     border-radius: 4px 4px 0px 0px;
@@ -319,6 +320,17 @@
     overflow: hidden;
     white-space: nowrap;
 }
+
+.drawflow-node-title .fas,
+.drawflow-node-title .far {
+    margin: 0 5px 0 0;
+    font-size: 16px;
+}
+
+.drawflow-node-title > span {
+    font-size: 13px;
+}
+
 
 .drawflow-node-overlay{
     position: absolute;
@@ -341,11 +353,6 @@
 }
 
 
-.drawflow-node-title .fas,
-.drawflow-node-title .far {
-    margin: 0 5px 0 0;
-    font-size: 16px;
-}
 
 .drawflow-node-body {
     width: 100%;
@@ -762,9 +769,19 @@ svg text {
   stroke-width: 4px;
 }
 
-
-.tick {
+text.label {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI Variable Text',
+    helvetica,arial,verdana,sans-serif;
     font-size: 10px;
+}
+
+text.label,
+.tick {
+    color: #555;
+}
+
+.axis {
+    color:#a9a9a9
 }
 
 .graph-node circle {
