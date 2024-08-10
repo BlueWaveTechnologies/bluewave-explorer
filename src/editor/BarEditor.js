@@ -317,6 +317,11 @@ bluewave.editor.BarEditor = function(parent, config) {
                             type: chartLayout
                         },
                         {
+                            name: "borderRadius",
+                            label: "Radius",
+                            type: "text"
+                        },
+                        {
                             name: "stackValues",
                             label: "Stack Bars",
                             type: "checkbox",
@@ -395,6 +400,18 @@ bluewave.editor.BarEditor = function(parent, config) {
                             ]
                         },
                         {
+                            name: "yAxisAlign",
+                            label: "Show On Right",
+                            type: "checkbox",
+                            options: [
+                                {
+                                    label: "",
+                                    value: true
+                                }
+
+                            ]
+                        },
+                        {
                             name: "yTicks",
                             label: "Ticks",
                             type: "text"
@@ -411,6 +428,12 @@ bluewave.editor.BarEditor = function(parent, config) {
         var layoutField = form.findField("layout");
         var layout = chartConfig.layout;
         layoutField.setValue(layout==="horizontal" ? "horizontal" : "vertical");
+
+      //Create slider for border radius
+        createSlider("borderRadius", form, "", 0, 20, 1);
+        var borderRadius = parseInt(chartConfig.borderRadius+"");
+        if (isNaN(borderRadius)) borderRadius = 0;
+        form.findField("borderRadius").setValue(borderRadius);
 
        //Set initial value for X-gridline
         var xGridField = form.findField("xGrid");
@@ -432,6 +455,10 @@ bluewave.editor.BarEditor = function(parent, config) {
         var yLabel = chartConfig.yLabel;
         yLabelField.setValue(yLabel===true ? true : false);
 
+      //Set initial value for the y-axis alignment
+        var yAxisAlignField = form.findField("yAxisAlign");
+        var yAxisAlign = chartConfig.yAxisAlign;
+        yAxisAlignField.setValue(yAxisAlign==="right" ? true : false);
 
         var stackField = form.findField("stackValues");
         var stack = chartConfig.stackValues;
@@ -439,12 +466,12 @@ bluewave.editor.BarEditor = function(parent, config) {
 
 
         createSlider("xTicks", form, "", 0, 50, 1);
-        var xTicks = chartConfig.xTicks;
+        var xTicks = parseInt(chartConfig.xTicks+"");
         if (isNaN(xTicks)) xTicks = 10;
         form.findField("xTicks").setValue(xTicks);
 
         createSlider("yTicks", form, "", 0, 50, 1);
-        var yTicks = chartConfig.yTicks;
+        var yTicks = parseInt(chartConfig.yTicks+"");
         if (isNaN(yTicks)) yTicks = 10;
         form.findField("yTicks").setValue(yTicks);
 
@@ -466,6 +493,9 @@ bluewave.editor.BarEditor = function(parent, config) {
             if (settings.yLabel==="true") settings.yLabel = true;
             else settings.yLabel = false;
 
+            if (settings.yAxisAlign) settings.yAxisAlign = "right";
+            else settings.yAxisAlign = "left";
+
             if (settings.stackValues==="true") settings.stackValues = true;
             else settings.stackValues = false;
 
@@ -476,9 +506,17 @@ bluewave.editor.BarEditor = function(parent, config) {
             chartConfig.yGrid = settings.yGrid;
             chartConfig.xLabel = settings.xLabel;
             chartConfig.yLabel = settings.yLabel;
-            chartConfig.xTicks = settings.xTicks;
-            chartConfig.yTicks = settings.yTicks;
+            chartConfig.yAxisAlign = settings.yAxisAlign;
             chartConfig.stackValues = settings.stackValues;
+
+            var borderRadius = bluewave.chart.utils.parseFloat(settings.borderRadius);
+            if (!isNaN(borderRadius)) chartConfig.borderRadius = borderRadius;
+
+            var xTicks = bluewave.chart.utils.parseFloat(settings.xTicks);
+            if (!isNaN(xTicks)) chartConfig.xTicks = xTicks;
+
+            var yTicks = bluewave.chart.utils.parseFloat(settings.yTicks);
+            if (!isNaN(yTicks)) chartConfig.yTicks = yTicks;
 
 
           //Disable animation
