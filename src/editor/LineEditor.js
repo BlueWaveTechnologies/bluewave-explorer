@@ -637,6 +637,18 @@ bluewave.editor.LineEditor = function(parent, config) {
                             ]
                         },
                         {
+                            name: "yAxisAlign",
+                            label: "Show On Right",
+                            type: "checkbox",
+                            options: [
+                                {
+                                    label: "",
+                                    value: true
+                                }
+
+                            ]
+                        },
+                        {
                             name: "yMin",
                             label: "Min Value",
                             type: yMinDropdown
@@ -663,6 +675,10 @@ bluewave.editor.LineEditor = function(parent, config) {
         var yGridField = form.findField("yGrid");
         var yGrid = chartConfig.yGrid;
         yGridField.setValue(yGrid===true ? true : false);
+
+        var yAxisAlignField = form.findField("yAxisAlign");
+        var yAxisAlign = chartConfig.yAxisAlign;
+        yAxisAlignField.setValue(yAxisAlign==="right" ? true : false);
 
       //Set intial value for xLabel
         var xLabelField = form.findField("xLabel");
@@ -691,12 +707,12 @@ bluewave.editor.LineEditor = function(parent, config) {
         scalingField.setValue(scale==="logarithmic" ? "logarithmic" : "linear");
 
         createSlider("xTicks", form, "", 0, 50, 1);
-        var xTicks = chartConfig.xTicks;
+        var xTicks = parseInt(chartConfig.xTicks+"");
         if (isNaN(xTicks)) xTicks = 10;
         form.findField("xTicks").setValue(xTicks);
 
         createSlider("yTicks", form, "", 0, 50, 1);
-        var yTicks = chartConfig.yTicks;
+        var yTicks = parseInt(chartConfig.yTicks+"");
         if (isNaN(yTicks)) yTicks = 10;
         form.findField("yTicks").setValue(yTicks);
 
@@ -717,6 +733,9 @@ bluewave.editor.LineEditor = function(parent, config) {
             if (settings.yLabel) settings.yLabel = true;
             else settings.yLabel = false;
 
+            if (settings.yAxisAlign) settings.yAxisAlign = "right";
+            else settings.yAxisAlign = "left";
+
             if (settings.endTags==="true") settings.endTags = true;
             else settings.endTags = false;
 
@@ -731,13 +750,18 @@ bluewave.editor.LineEditor = function(parent, config) {
             chartConfig.yGrid = settings.yGrid;
             chartConfig.xLabel = settings.xLabel;
             chartConfig.yLabel = settings.yLabel;
+            chartConfig.yAxisAlign = settings.yAxisAlign;
             chartConfig.endTags = settings.endTags;
             chartConfig.stackValues = settings.stack;
             chartConfig.accumulateValues = settings.accumulate;
             if (chartConfig.xLabel) chartConfig.xLabel = chartConfig.layers[0].xAxis;
             if (chartConfig.yLabel) chartConfig.yLabel = chartConfig.layers[0].yAxis;
-            chartConfig.xTicks = settings.xTicks;
-            chartConfig.yTicks = settings.yTicks;
+
+            var xTicks = bluewave.chart.utils.parseFloat(settings.xTicks);
+            if (!isNaN(xTicks)) chartConfig.xTicks = xTicks;
+
+            var yTicks = bluewave.chart.utils.parseFloat(settings.yTicks);
+            if (!isNaN(yTicks)) chartConfig.yTicks = yTicks;
 
 
             var xMin = bluewave.chart.utils.parseFloat(xMinDropdown.getText());
