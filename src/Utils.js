@@ -463,23 +463,45 @@ bluewave.utils = {
       //Create grid
         var grid = new javaxt.dhtml.DataGrid(overflowDiv, {
             columns: columnConfig,
-            style: config.style.table
+            style: config.style.table,
+            getResponse: function(url, payload, callback){
+                callback.apply(grid, [{ status: 0 }]);
+            }
         });
 
 
-      //Load data
-        if (hasHeader){
+      //Create function to get records by page
+        var page = 1;
+        var startRow = hasHeader ? 1 : 0;
+        var getData = function(page){
+            var limit = 50;
+            var offset = 0;
+            if (page>1) offset = ((page-1)*limit)+1;
 
-          //Create new dataset vs shift() because we don't want to modify the data!
             var data = [];
-            for (var i=1; i<records.length; i++){
+            for (var i=startRow+offset; i<records.length; i++){
                 data.push(records[i]);
+                if (data.length===limit) break;
             }
-            grid.load(data, 1);
-        }
-        else{
-            grid.load(records, 1);
-        }
+            return data;
+        };
+
+
+      //Load first page of data
+        grid.load(getData(page), page);
+
+
+      //Watch for scroll events to load more data
+        var pages = {};
+        pages[page+''] = true;
+        grid.onPageChange = function(currPage){
+            page = currPage;
+
+            if (!pages[page+'']){
+                grid.load(getData(page), page);
+                pages[page+''] = true;
+            }
+        };
 
         return grid;
     },
