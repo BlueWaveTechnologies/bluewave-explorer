@@ -169,7 +169,12 @@ bluewave.editor.PieEditor = function(parent, config) {
         }
 
 
-        var colors = chartConfig.colors ? JSON.parse(chartConfig.colors) : null;
+      //Set colors
+        var colors = null;
+        if (chartConfig.colors){
+            if (isString(chartConfig.colors)) colors = JSON.parse(chartConfig.colors);
+            else if (isArray(chartConfig.colors)) colors = chartConfig.colors;
+        }
         if (!colors && config.colors) colors = Object.values(config.colors)[0];
         if (colors) chartConfig.colors = colors;
 
@@ -399,7 +404,14 @@ bluewave.editor.PieEditor = function(parent, config) {
 
 
       //Render chart
-        chart.update(chartConfig, inputData);
+        if (inputData.length>0 && inputData[0].length>0){
+            var record = inputData[0][0];
+            var keys = new Set(Object.keys(record));
+            if (keys.has(chartConfig.pieKey) &&
+                keys.has(chartConfig.pieValue)){
+                chart.update(chartConfig, inputData);
+            }
+        }
     };
 
 
@@ -615,6 +627,8 @@ bluewave.editor.PieEditor = function(parent, config) {
   //**************************************************************************
     var merge = javaxt.dhtml.utils.merge;
     var createTable = javaxt.dhtml.utils.createTable;
+    var isString = javaxt.dhtml.utils.isString;
+    var isArray = javaxt.dhtml.utils.isArray;
 
     var createKeyValueDataset = bluewave.chart.utils.createKeyValueDataset;
     var getType = bluewave.chart.utils.getType;
