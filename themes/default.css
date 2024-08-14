@@ -493,6 +493,7 @@
     height: 22px;
     border-radius: 2px;
     position: relative;
+    display: flex;
 }
 
 .form-input-menu-item .form-input-menu-color {
@@ -503,6 +504,15 @@
     transform: translateY(-50%);
 }
 
+.form-input-menu-color > div {
+    height: 100%;
+    flex-grow: 1;
+    transition: all 0.1s ease-in-out;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    flex-basis: 1px;
+}
 
 
 /**************************************************************************/
