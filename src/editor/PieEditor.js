@@ -259,6 +259,7 @@ bluewave.editor.PieEditor = function(parent, config) {
 
 
       //Analyze dataset
+        var keyFields = [];
         var valueFields = [];
         fields.forEach((field)=>{
             var values = [];
@@ -267,6 +268,12 @@ bluewave.editor.PieEditor = function(parent, config) {
                 values.push(val);
             });
             var type = getType(values);
+
+            if (type=="string" || type==null){
+                keyFields.push({
+                    name: field, values: new Set(values).size
+                });
+            }
             if (type=="number" || type=="currency") valueFields.push(field);
         });
 
@@ -290,9 +297,16 @@ bluewave.editor.PieEditor = function(parent, config) {
         else{
 
             createDropdown(table,"pieKey","Key","key");
-            fields.forEach((val)=>{
-                pieInputs.key.add(val,val);
+
+
+          //Populate key pulldown
+            keyFields.sort(function(a, b){
+                return a.values-b.values;
             });
+            keyFields.forEach((field)=>{
+                pieInputs.key.add(field.name,field.name);
+            });
+
 
             createDropdown(table,"pieValue","Value","value");
             valueFields.forEach((field)=>{
@@ -309,10 +323,20 @@ bluewave.editor.PieEditor = function(parent, config) {
         }
 
 
-        pieInputs.key.setValue(chartConfig.pieKey, true);
-        if(typeof pieInputs.value == "object") {
-            pieInputs.value.setValue(chartConfig.pieValue, true);
+
+      //Select default key value
+        if (!chartConfig.pieKey && keyFields.length>0){
+            chartConfig.pieKey = keyFields[0].name;
         }
+        pieInputs.key.setValue(chartConfig.pieKey, true);
+
+
+      //Select default value field
+        if (!chartConfig.pieValue && valueFields.length>0){
+            chartConfig.pieValue = valueFields[0];
+        }
+        pieInputs.value.setValue(chartConfig.pieValue, true);
+
     };
 
 
@@ -401,6 +425,14 @@ bluewave.editor.PieEditor = function(parent, config) {
       //Calculate total slices and set max to render
         numSlices = createKeyValueDataset(inputData[0], chartConfig.pieKey, chartConfig.pieValue).length;
         chartConfig.maximumSlices = getMaxSlices(chartConfig.maximumSlices);
+
+
+      //Update max slices if the slices exceed available colors
+        if (chartConfig.colors){
+            var maxSlices = numSlices;
+            if (maxSlices>chartConfig.colors.length) maxSlices = chartConfig.colors.length;
+            if (chartConfig.maximumSlices>maxSlices) chartConfig.maximumSlices = maxSlices;
+        }
 
 
       //Render chart
@@ -530,6 +562,8 @@ bluewave.editor.PieEditor = function(parent, config) {
 
       //Set initial value for the color field
         colorField.setValue(JSON.stringify(chartConfig.colors));
+        var colors = colorField.getValue();
+        if (colors) colors = JSON.parse(colors);
 
 
       //Update cutout field (add slider) and set initial value
@@ -553,8 +587,7 @@ bluewave.editor.PieEditor = function(parent, config) {
         form.findField("labelOffset").setValue(labelOffset);
 
 
-
-      //Set initial value for padding and update
+      //Set initial value for padding
         createSlider("padding", form, "%", 0, 100, 1);
         var padding = chartConfig.piePadding;
         var maxPadding = 5;
@@ -562,13 +595,15 @@ bluewave.editor.PieEditor = function(parent, config) {
         form.findField("padding").setValue(padding);
 
 
-        var maxSliceOptField = form.findField("showOther");
-        var showOther = chartConfig.showOther;
-        maxSliceOptField.setValue(showOther===true ? true : false);
+        var showOtherField = form.findField("showOther");
+        showOtherField.setValue(chartConfig.showOther===true ? true : false);
 
 
-        createSlider("maximumSlices", form, "", 1, numSlices, 1);
-        form.findField("maximumSlices").setValue(getMaxSlices(chartConfig.maximumSlices));
+      //Set initial value for max slices
+        var maxSlices = numSlices;
+        if (colors && colors.length<maxSlices) maxSlices = colors.length;
+        var maxSliceSlider = createSlider("maximumSlices", form, "", 1, maxSlices, 1);
+        form.findField("maximumSlices").setValue(Math.min(maxSlices, getMaxSlices(chartConfig.maximumSlices)));
 
 
       //Process onChange events
@@ -599,7 +634,20 @@ bluewave.editor.PieEditor = function(parent, config) {
 
 
             var colors = settings.color ? JSON.parse(settings.color) : null;
-            if (colors) chartConfig.colors = colors;
+            if (colors){
+                chartConfig.colors = colors;
+
+              //Update max slices config and slider as needed
+                var maxSlices = numSlices;
+                if (colors.length<numSlices) maxSlices = colors.length;
+                maxSliceSlider.setAttribute("max", maxSlices+1);
+                if (chartConfig.maximumSlices>maxSlices){
+                    chartConfig.maximumSlices = maxSlices;
+                    form.findField("maximumSlices").setValue(maxSlices, true);
+                }
+
+            }
+
 
             createPreview();
         };
